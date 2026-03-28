@@ -1,0 +1,64 @@
+{
+  "name": "Твоё хобби — Вязание",
+  "short_name": "ТХ Вязание",
+  "description": "Менеджер проектов по вязанию. Счётчик рядов, расчёт пряжи, шаги схемы.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0F1A",
+  "theme_color": "#1BAEC8",
+  "lang": "ru",
+  "categories": ["lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Главный экран проектов"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Счётчик рядов",
+      "short_name": "Счётчик",
+      "description": "Открыть счётчик рядов",
+      "url": "/?tab=counter",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Расчёт пряжи",
+      "short_name": "Расчёт",
+      "description": "Быстрый расчёт пряжи",
+      "url": "/?tab=calc",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

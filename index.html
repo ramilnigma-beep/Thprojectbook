@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Твоё хобби — Вязание</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#1BAEC8"/>
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="ТХ Вязание"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+
+  <!-- SEO / Share -->
+  <meta name="description" content="Менеджер проектов по вязанию от магазина Твоё хобби"/>
+  <meta property="og:title" content="Твоё хобби — Вязание"/>
+  <meta property="og:description" content="Счётчик рядов, расчёт пряжи, шаги схемы и журнал прогресса"/>
+  <meta property="og:image" content="/icon-512.png"/>
+
+  <style>
+    /* Минимальный сплэш пока грузится React */
+    body {
+      margin: 0;
+      background: #0A0F1A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: sans-serif;
+    }
+    #splash {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      color: #1BAEC8;
+    }
+    #splash-icon {
+      font-size: 52px;
+      animation: pulse 1.4s ease infinite;
+    }
+    #splash-text {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      opacity: .7;
+    }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.1); opacity: .6; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Сплэш-экран (скрывается когда React монтируется) -->
+  <div id="splash">
+    <div id="splash-icon">🧶</div>
+    <div id="splash-text">Твоё хобби</div>
+  </div>
+
+  <!-- Корень React-приложения -->
+  <div id="root"></div>
+
+  <!-- React 18 из CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel для компиляции JSX прямо в браузере -->
+  <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+
+  <!-- Наше приложение -->
+  <script type="text/babel" data-presets="react">
+    // Babel загрузит и скомпилирует App.jsx
+    // Через fetch чтобы корректно обработать модуль
+    fetch('/App.jsx')
+      .then(r => r.text())
+      .then(code => {
+        const transformed = Babel.transform(code, {
+          presets: ['react'],
+          plugins: []
+        }).code;
+
+        // Заменяем ES-модульный import на глобальные React переменные
+        const patched = transformed
+          .replace(/import\s+\{([^}]+)\}\s+from\s+['"]react['"]/g, (_, names) => {
+            return `const {${names}} = React;`;
+          })
+          .replace(/export\s+default\s+function\s+App/g, 'function App')
+          .replace(/export\s+default\s+App;?/g, '');
+
+        // Выполняем код
+        const fn = new Function('React', 'ReactDOM', patched + '\nreturn App;');
+        const AppComponent = fn(React, ReactDOM);
+
+        // Убираем сплэш
+        const splash = document.getElementById('splash');
+        if (splash) splash.remove();
+
+        // Монтируем приложение
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(AppComponent));
+      })
+      .catch(err => {
+        document.getElementById('splash').innerHTML =
+          `<div style="color:#FF6B6B;text-align:center;padding:20px">
+             <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+             <div style="font-weight:700">Ошибка загрузки</div>
+             <div style="font-size:12px;margin-top:8px;opacity:.7">${err.message}</div>
+           </div>`;
+      });
+  </script>
+
+  <!-- Service Worker для офлайн-работы -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('SW зарегистрирован:', reg.scope))
+          .catch(err => console.log('SW ошибка:', err));
+      });
+    }
+  </script>
+
+</body>
+</html>
