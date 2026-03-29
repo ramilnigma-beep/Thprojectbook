@@ -140,7 +140,56 @@ function fireConfetti(colors=[TEAL,"#fff",GOLD]){
     if(++fr<100)requestAnimationFrame(tick);else c.remove();};requestAnimationFrame(tick);
 }
 
-// ── Export project card as PNG (Instagram share) ──────────────────────────────
+// ── K-коэффициент по типу пряжи ───────────────────────────────────────────────
+const K_BY_CATEGORY={
+  "Кружевная":1.2,"Тонкая":1.3,"Спорт":1.4,"DK":1.5,
+  "Ворстед":1.55,"Аран":1.65,"Толстая":1.75,"Супертолстая":1.9,
+};
+const PATTERN_FACTORS=[
+  {label:"Лицевая гладь",value:1.0},{label:"Резинка 1×1",value:1.15},
+  {label:"Резинка 2×2",value:1.2},{label:"Жемчужная",value:1.1},
+  {label:"Косы",value:1.35},{label:"Ажур",value:0.9},{label:"Жаккард",value:1.3},
+];
+
+// ── Центральная функция расчёта пряжи ────────────────────────────────────────
+function calcYarn({itemW,itemH,margin,sampleW,sampleH,sampleG,stitches,rows,sampleSize,metersPerHundred,patternFactor,kFactor}){
+  const areaItem=itemW*itemH;
+  let grams=0,meters=0;
+  if(sampleG>0){
+    // Режим 1: через вес образца (точный)
+    const areaSample=(sampleW||10)*(sampleH||10);
+    grams=(sampleG/areaSample)*areaItem;
+    if(metersPerHundred>0)meters=grams*(metersPerHundred/100);
+  } else {
+    // Режим 2: через плотность + эмпирический коэффициент K
+    const stPerCm=stitches/sampleSize;
+    const rowPerCm=rows/sampleSize;
+    const consumptionPerCm2=(1/stPerCm)*(1/rowPerCm)*kFactor*(patternFactor||1.0);
+    meters=areaItem*consumptionPerCm2;
+    if(metersPerHundred>0)grams=meters/(metersPerHundred/100);
+  }
+  return{
+    grams:Math.round(grams*(1+margin/100)),
+    meters:Math.round(meters*(1+margin/100)),
+  };
+}
+
+// ── Кроссбраузерный roundRect для canvas ─────────────────────────────────────
+function canvasRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ── Export project card as PNG ────────────────────────────────────────────────
 async function exportProjectCard(project){
   const W=1080,H=1080;
   const canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;
@@ -154,14 +203,14 @@ async function exportProjectCard(project){
     await new Promise(res=>{
       const img=new Image();img.onload=()=>{
         ctx.save();ctx.beginPath();
-        if(ctx.roundRect)ctx.roundRect(60,60,480,480,28);
+        if(ctx.roundRect)canvasRoundRect(ctx, 60,60,480,480,28);
         else ctx.rect(60,60,480,480);
         ctx.clip();ctx.drawImage(img,60,60,480,480);ctx.restore();res();
       };img.onerror=res;img.src=project.resultPhoto||project.inspoPhoto;
     });
   } else {
     ctx.fillStyle="rgba(27,174,200,0.12)";
-    if(ctx.roundRect)ctx.roundRect(60,60,480,480,28);else ctx.rect(60,60,480,480);
+    if(ctx.roundRect)canvasRoundRect(ctx, 60,60,480,480,28);else ctx.rect(60,60,480,480);
     ctx.fill();
     ctx.font="100px serif";ctx.textAlign="center";ctx.fillText("🧶",300,360);
   }
@@ -188,10 +237,10 @@ async function exportProjectCard(project){
     ctx.strokeStyle="rgba(255,255,255,0.2)";ctx.lineWidth=2;ctx.stroke();
   });
   ctx.fillStyle="rgba(255,255,255,0.08)";
-  if(ctx.roundRect)ctx.roundRect(60,800,W-120,10,5);else ctx.rect(60,800,W-120,10);
+  if(ctx.roundRect)canvasRoundRect(ctx, 60,800,W-120,10,5);else ctx.rect(60,800,W-120,10);
   ctx.fill();
   ctx.fillStyle=TEAL;
-  if(ctx.roundRect)ctx.roundRect(60,800,(W-120)*(pct/100),10,5);else ctx.rect(60,800,(W-120)*(pct/100),10);
+  if(ctx.roundRect)canvasRoundRect(ctx, 60,800,(W-120)*(pct/100),10,5);else ctx.rect(60,800,(W-120)*(pct/100),10);
   ctx.fill();
   ctx.fillStyle="rgba(255,255,255,0.35)";ctx.font="24px sans-serif";ctx.textAlign="right";
   ctx.fillText("Твоё хобби · tvoe-hobby.ru",W-60,H-28);
@@ -624,12 +673,20 @@ function AuthScreen({onLogin}){
     if(!form.email.includes("@")){setErr("Введите корректный email");return;}
     if(form.password.length<6){setErr("Пароль минимум 6 символов");return;}
     setLoading(true);
-    setTimeout(()=>{setLoading(false);onLogin({name:mode==="register"?form.name:form.email.split("@")[0],email:form.email,isGuest:false});},800);
+    // Локальная авторизация — данные хранятся на устройстве
+    setTimeout(()=>{
+      setLoading(false);
+      onLogin({name:mode==="register"?form.name:form.email.split("@")[0],email:form.email,isGuest:false});
+    },600);
   };
   return(<div className="auth-screen">
     <img src={mode==="login"?STICKER_KNITTING:STICKER_YARN} alt="" style={{width:170,height:"auto",marginBottom:6,filter:"drop-shadow(0 6px 20px rgba(27,174,200,0.3))",transition:"all .35s cubic-bezier(.34,1.56,.64,1)"}}/>
     <div style={{marginBottom:16,textAlign:"center"}}><LogoSVG h={40}/><div style={{fontSize:12,fontWeight:500,color:"var(--muted)",marginTop:6}}>Управляй проектами по вязанию</div></div>
     <div className="auth-card">
+      {/* Информационный баннер — честно объясняем что авторизация локальная */}
+      <div style={{background:"rgba(27,174,200,0.08)",border:"1px solid rgba(27,174,200,0.2)",borderRadius:10,padding:"10px 12px",fontSize:12,fontWeight:600,color:"var(--teal)",lineHeight:1.5,marginBottom:14}}>
+        🔒 Данные хранятся на вашем устройстве. Синхронизация между устройствами — скоро.
+      </div>
       <div className="auth-tabs">
         <button className={`auth-tab ${mode==="login"?"on":""}`} onClick={()=>{setMode("login");setErr("");}}>Войти</button>
         <button className={`auth-tab ${mode==="register"?"on":""}`} onClick={()=>{setMode("register");setErr("");}}>Регистрация</button>
@@ -641,7 +698,6 @@ function AuthScreen({onLogin}){
       <button className="btn bp bfull" onClick={submit} disabled={loading} style={{marginTop:4}}>{loading?"Подождите…":mode==="login"?"Войти":"Создать аккаунт"}</button>
       <div className="auth-divider"><div className="auth-divider-line"/><div className="auth-divider-txt">или</div><div className="auth-divider-line"/></div>
       <button className="auth-guest" onClick={()=>onLogin({name:"Гость",email:"",isGuest:true})}>👤 Продолжить без регистрации</button>
-      <div className="auth-hint">{mode==="login"?"Без аккаунта данные хранятся только на этом устройстве":"Регистрация позволяет синхронизировать проекты"}</div>
     </div>
   </div>);
 }
@@ -840,34 +896,168 @@ function SwipeStep({step,index,isActive,onToggle}){
 
 
 // ── CALC (два режима: размер изделия + замена пряжи) ─────────────────────────
+// ── CalcTab (внутри проекта) ─────────────────────────────────────────────────
 function CalcTab({project,onUpdate,showToast}){
-  const [mode,setMode]=useState("size"); // size | replace
+  const [mode,setMode]=useState("size");
+  const [calcMode,setCalcMode]=useState("density");
   const [gauge,setGauge]=useState(project.gauge||{stitches:22,rows:30,size:10});
   const [dim,setDim]=useState(project.dimensions||{width:54,length:66});
-  const [density,setDensity]=useState(200);const [margin,setMargin]=useState(project.safetyMargin??10);
-  // Замена пряжи
-  const [have,setHave]=useState({m:100,per100g:150});const [need,setNeed]=useState({m:100,per100g:200});const [haveG,setHaveG]=useState(200);
-  const stPcm=gauge.stitches/gauge.size,rowPcm=gauge.rows/gauge.size;
-  const totalSt=Math.round(stPcm*dim.width*rowPcm*dim.length);
-  const mBase=Math.round(totalSt*.003),mNeeded=Math.round(mBase*(1+margin/100));
-  const gNeeded=Math.round(mNeeded/(density/100));
-  const avail=(project.yarns||[]).reduce((a,y)=>a+(y.length||0),0),diff=avail-mNeeded;
-  // Замена: сколько нужно купить
-  const haveTotalM=haveG*(have.m/100);
-  const needG=Math.round((haveTotalM/(need.m/100)));
-  const replaceDiff=haveG-needG;
+  const [metersPerHundred,setMetersPerHundred]=useState(200);
+  const [margin,setMargin]=useState(project.safetyMargin??10);
+  const [patternFactor,setPatternFactor]=useState(1.0);
+  const [yarnCategory,setYarnCategory]=useState("Ворстед");
+  const [sampleW,setSampleW]=useState(10);const [sampleH,setSampleH]=useState(10);const [sampleG,setSampleG]=useState("");
+  const [haveM,setHaveM]=useState(150);const [needM,setNeedM]=useState(200);
+  const [needGInput,setNeedGInput]=useState(300);const [haveGInput,setHaveGInput]=useState(200);
+  const kFactor=K_BY_CATEGORY[yarnCategory]||1.5;
+  const result=calcYarn({itemW:dim.width,itemH:dim.length,margin,
+    sampleW,sampleH,sampleG:calcMode==="weight"?(+sampleG||0):0,
+    stitches:gauge.stitches,rows:gauge.rows,sampleSize:gauge.size,
+    metersPerHundred,patternFactor,kFactor});
+  const avail=(project.yarns||[]).reduce((a,y)=>a+(y.length||0),0);
+  const diff=avail-result.meters;
+  const haveTotalM=haveGInput*(haveM/100);
+  const needGrams=Math.round(haveTotalM/(needM/100));
+  const replaceDiff=haveGInput-needGrams;
   return(<div className="page"><div className="sh">Расчёт <span>пряжи</span></div>
     <div className="calc-tabs">
       <div className={`calc-tab ${mode==="size"?"on":""}`} onClick={()=>setMode("size")}>📐 По размеру</div>
       <div className={`calc-tab ${mode==="replace"?"on":""}`} onClick={()=>setMode("replace")}>🔄 Замена пряжи</div>
     </div>
     {mode==="size"&&<>
-      <div className="card"><div className="ctit mb8">Раппорт</div>
-        <div className="grid2">
-          <div className="field"><label className="lbl">Петли</label><input type="number" value={gauge.stitches} onChange={e=>setGauge({...gauge,stitches:+e.target.value})}/></div>
-          <div className="field"><label className="lbl">Ряды</label><input type="number" value={gauge.rows} onChange={e=>setGauge({...gauge,rows:+e.target.value})}/></div>
+      <div className="card"><div className="ctit mb8">Метод расчёта</div>
+        <div className="calc-tabs" style={{marginBottom:0}}>
+          <div className={`calc-tab ${calcMode==="density"?"on":""}`} onClick={()=>setCalcMode("density")}>📊 По раппорту</div>
+          <div className={`calc-tab ${calcMode==="weight"?"on":""}`} onClick={()=>setCalcMode("weight")}>⚖️ По весу образца</div>
         </div>
-        <div className="field"><label className="lbl">Образец (см)</label><input type="number" value={gauge.size} onChange={e=>setGauge({...gauge,size:+e.target.value})}/></div>
+        {calcMode==="weight"&&<div style={{marginTop:10,padding:"8px 10px",background:"rgba(27,174,200,0.08)",borderRadius:10,fontSize:12,fontWeight:600,color:"var(--teal)",lineHeight:1.5}}>💡 Свяжите образец 10×10 см и взвесьте — самый точный способ</div>}
+      </div>
+      <div className="card"><div className="ctit mb8">Образец</div>
+        {calcMode==="weight"?(<>
+          <div className="grid2">
+            <div className="field"><label className="lbl">Ширина (см)</label><input type="number" value={sampleW} onChange={e=>setSampleW(+e.target.value)}/></div>
+            <div className="field"><label className="lbl">Высота (см)</label><input type="number" value={sampleH} onChange={e=>setSampleH(+e.target.value)}/></div>
+          </div>
+          <div className="field"><label className="lbl">Вес образца (г) ⚖️</label><input type="number" value={sampleG} onChange={e=>setSampleG(e.target.value)} placeholder="Взвесьте образец на весах"/></div>
+        </>):(<>
+          <div className="grid2">
+            <div className="field"><label className="lbl">Петли</label><input type="number" value={gauge.stitches} onChange={e=>setGauge({...gauge,stitches:+e.target.value})}/></div>
+            <div className="field"><label className="lbl">Ряды</label><input type="number" value={gauge.rows} onChange={e=>setGauge({...gauge,rows:+e.target.value})}/></div>
+          </div>
+          <div className="field"><label className="lbl">Размер образца (см)</label><input type="number" value={gauge.size} onChange={e=>setGauge({...gauge,size:+e.target.value})}/></div>
+        </>)}
+      </div>
+      <div className="card"><div className="ctit mb8">Размеры изделия (см)</div>
+        <div className="grid2">
+          <div className="field"><label className="lbl">Ширина</label><input type="number" value={dim.width} onChange={e=>setDim({...dim,width:+e.target.value})}/></div>
+          <div className="field"><label className="lbl">Длина</label><input type="number" value={dim.length} onChange={e=>setDim({...dim,length:+e.target.value})}/></div>
+        </div>
+      </div>
+      <div className="card"><div className="ctit mb8">Параметры пряжи</div>
+        <div className="grid2">
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={metersPerHundred} onChange={e=>setMetersPerHundred(+e.target.value)}/></div>
+          <div className="field"><label className="lbl">Запас %</label><input type="number" value={margin} onChange={e=>setMargin(+e.target.value)}/></div>
+        </div>
+        {calcMode==="density"&&<>
+          <div className="field"><label className="lbl">Тип пряжи</label>
+            <select value={yarnCategory} onChange={e=>setYarnCategory(e.target.value)}>{Object.keys(K_BY_CATEGORY).map(c=><option key={c}>{c}</option>)}</select>
+          </div>
+          <div className="field"><label className="lbl">Узор</label>
+            <select value={patternFactor} onChange={e=>setPatternFactor(+e.target.value)}>{PATTERN_FACTORS.map(p=><option key={p.label} value={p.value}>{p.label}</option>)}</select>
+          </div>
+        </>}
+      </div>
+      <div className="cr">
+        <div className="crr"><span>Площадь изделия</span><span className="crv">{dim.width*dim.length} см²</span></div>
+        <div className="crd"/>
+        <div className="crr"><span>Нужно метров</span><span className="crv">{result.meters} м</span></div>
+        <div className="crr crb"><span>Нужно граммов</span><span className="crv">{result.grams} г</span></div>
+        <div className="crd"/>
+        <div className="crr"><span>Пряжа в проекте</span><span className="crv">{avail} м</span></div>
+        <div className="crr crb"><span>{diff>=0?"Остаток":"Нехватка"}</span><span className={diff>=0?"surplus":"shortage"}>{Math.abs(diff)} м {diff>=0?"✓":"⚠️"}</span></div>
+        {calcMode==="density"&&<div style={{marginTop:10,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:8,fontSize:11,color:"rgba(255,255,255,0.45)",lineHeight:1.5}}>⚖️ Для точного результата взвесьте образец и выберите «По весу образца»</div>}
+      </div>
+      <button className="btn bg bfull mt12" onClick={()=>{onUpdate(p=>({...p,gauge,dimensions:dim,safetyMargin:margin}));showToast("✓ Раппорт сохранён");}}>💾 Сохранить раппорт</button>
+    </>}
+    {mode==="replace"&&<>
+      <div style={{fontSize:13,color:"var(--muted)",fontWeight:500,marginBottom:12,lineHeight:1.5}}>Пересчёт при замене пряжи на другую с другим метражом на 100г.</div>
+      <div className="card"><div className="ctit mb8">Пряжа по схеме (нужна)</div>
+        <div className="grid2">
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={needM} onChange={e=>setNeedM(+e.target.value)} placeholder="200"/></div>
+          <div className="field"><label className="lbl">Нужно граммов</label><input type="number" value={needGInput} onChange={e=>setNeedGInput(+e.target.value)} placeholder="300"/></div>
+        </div>
+      </div>
+      <div className="card"><div className="ctit mb8">Ваша пряжа (есть)</div>
+        <div className="grid2">
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={haveM} onChange={e=>setHaveM(+e.target.value)} placeholder="150"/></div>
+          <div className="field"><label className="lbl">Есть граммов</label><input type="number" value={haveGInput} onChange={e=>setHaveGInput(+e.target.value)} placeholder="200"/></div>
+        </div>
+      </div>
+      <div className="cr">
+        <div className="crr"><span>Нужно метров по схеме</span><span className="crv">{Math.round(needGInput*(needM/100))} м</span></div>
+        <div className="crr"><span>У вас метров</span><span className="crv">{Math.round(haveGInput*(haveM/100))} м</span></div>
+        <div className="crd"/>
+        <div className="crr crb"><span>Нужно вашей пряжи</span><span className="crv">{needGrams} г</span></div>
+        <div className="crr"><span>{replaceDiff>=0?"Остаток":"Докупить"}</span><span className={replaceDiff>=0?"surplus":"shortage"}>{Math.abs(replaceDiff)} г {replaceDiff>=0?"✓":"⚠️"}</span></div>
+      </div>
+    </>}
+  </div>);
+}
+
+// ── StandaloneCalc (отдельная вкладка) ────────────────────────────────────────
+function StandaloneCalc({setData}){
+  const [mode,setMode]=useState("size");
+  const [calcMode,setCalcMode]=useState("density");
+  const [g,setG]=useState({stitches:20,rows:28,size:10});
+  const [dim,setDim]=useState({width:50,length:60});
+  const [metersPerHundred,setMetersPerHundred]=useState(200);
+  const [margin,setMargin]=useState(10);
+  const [avail,setAvail]=useState("");
+  const [patternFactor,setPatternFactor]=useState(1.0);
+  const [yarnCategory,setYarnCategory]=useState("Ворстед");
+  const [sampleW,setSampleW]=useState(10);const [sampleH,setSampleH]=useState(10);const [sampleG,setSampleG]=useState("");
+  const [haveM,setHaveM]=useState(150);const [needM,setNeedM]=useState(200);
+  const [needGInput,setNeedGInput]=useState(300);const [haveGInput,setHaveGInput]=useState(200);
+  const [addedToList,setAddedToList]=useState(false);
+  const kFactor=K_BY_CATEGORY[yarnCategory]||1.5;
+  const result=calcYarn({itemW:dim.width,itemH:dim.length,margin,
+    sampleW,sampleH,sampleG:calcMode==="weight"?(+sampleG||0):0,
+    stitches:g.stitches,rows:g.rows,sampleSize:g.size,
+    metersPerHundred,patternFactor,kFactor});
+  const av=+avail||0;const diff=av-result.meters;
+  const needGrams2=Math.round(haveGInput*(haveM/100)/(needM/100));
+  const replaceDiff2=haveGInput-needGrams2;
+  const addToShopping=()=>{
+    setData(dd=>({...dd,shoppingList:[...(dd.shoppingList||[]),{id:`sh${Date.now()}`,text:`Пряжа ~${result.grams}г (${result.meters}м) для изделия ${dim.width}×${dim.length}см`,done:false}]}));
+    setAddedToList(true);setTimeout(()=>setAddedToList(false),2000);
+  };
+  return(<div className="page"><div className="sh">Быстрый <span>расчёт</span></div>
+    <div className="calc-tabs">
+      <div className={`calc-tab ${mode==="size"?"on":""}`} onClick={()=>setMode("size")}>📐 По размеру</div>
+      <div className={`calc-tab ${mode==="replace"?"on":""}`} onClick={()=>setMode("replace")}>🔄 Замена пряжи</div>
+    </div>
+    {mode==="size"&&<>
+      <div className="card"><div className="ctit mb8">Метод расчёта</div>
+        <div className="calc-tabs" style={{marginBottom:0}}>
+          <div className={`calc-tab ${calcMode==="density"?"on":""}`} onClick={()=>setCalcMode("density")}>📊 По раппорту</div>
+          <div className={`calc-tab ${calcMode==="weight"?"on":""}`} onClick={()=>setCalcMode("weight")}>⚖️ По весу образца</div>
+        </div>
+        {calcMode==="weight"&&<div style={{marginTop:10,padding:"8px 10px",background:"rgba(27,174,200,0.08)",borderRadius:10,fontSize:12,fontWeight:600,color:"var(--teal)",lineHeight:1.5}}>💡 Свяжите образец и взвесьте — самый точный способ</div>}
+      </div>
+      <div className="card"><div className="ctit mb8">Образец</div>
+        {calcMode==="weight"?(<>
+          <div className="grid2">
+            <div className="field"><label className="lbl">Ширина (см)</label><input type="number" value={sampleW} onChange={e=>setSampleW(+e.target.value)}/></div>
+            <div className="field"><label className="lbl">Высота (см)</label><input type="number" value={sampleH} onChange={e=>setSampleH(+e.target.value)}/></div>
+          </div>
+          <div className="field"><label className="lbl">Вес образца (г) ⚖️</label><input type="number" value={sampleG} onChange={e=>setSampleG(e.target.value)} placeholder="Взвесьте образец"/></div>
+        </>):(<>
+          <div className="grid2">
+            <div className="field"><label className="lbl">Петли</label><input type="number" value={g.stitches} onChange={e=>setG({...g,stitches:+e.target.value})}/></div>
+            <div className="field"><label className="lbl">Ряды</label><input type="number" value={g.rows} onChange={e=>setG({...g,rows:+e.target.value})}/></div>
+          </div>
+          <div className="field"><label className="lbl">Образец (см)</label><input type="number" value={g.size} onChange={e=>setG({...g,size:+e.target.value})}/></div>
+        </>)}
       </div>
       <div className="card"><div className="ctit mb8">Размеры (см)</div>
         <div className="grid2">
@@ -875,235 +1065,50 @@ function CalcTab({project,onUpdate,showToast}){
           <div className="field"><label className="lbl">Длина</label><input type="number" value={dim.length} onChange={e=>setDim({...dim,length:+e.target.value})}/></div>
         </div>
       </div>
-      <div className="card"><div className="grid2">
-        <div className="field"><label className="lbl">м/100г</label><input type="number" value={density} onChange={e=>setDensity(+e.target.value)}/></div>
-        <div className="field"><label className="lbl">Запас %</label><input type="number" value={margin} onChange={e=>setMargin(+e.target.value)}/></div>
-      </div></div>
-      <div className="cr">
-        <div className="crr"><span>Петель итого</span><span className="crv">{totalSt.toLocaleString("ru")}</span></div>
-        <div className="crr"><span>Нужно метров</span><span className="crv">{mNeeded} м</span></div>
-        <div className="crr"><span>Примерно граммов</span><span className="crv">≈{gNeeded} г</span></div>
-        <div className="crd"/>
-        <div className="crr"><span>Пряжа в проекте</span><span className="crv">{avail} м</span></div>
-        <div className="crr crb"><span>{diff>=0?"Остаток":"Нехватка"}</span><span className={diff>=0?"surplus":"shortage"}>{Math.abs(diff)} м {diff>=0?"✓":"⚠️"}</span></div>
+      <div className="card">
+        <div className="grid2">
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={metersPerHundred} onChange={e=>setMetersPerHundred(+e.target.value)}/></div>
+          <div className="field"><label className="lbl">Запас %</label><input type="number" value={margin} onChange={e=>setMargin(+e.target.value)}/></div>
+        </div>
+        {calcMode==="density"&&<>
+          <div className="field"><label className="lbl">Тип пряжи</label>
+            <select value={yarnCategory} onChange={e=>setYarnCategory(e.target.value)}>{Object.keys(K_BY_CATEGORY).map(c=><option key={c}>{c}</option>)}</select>
+          </div>
+          <div className="field"><label className="lbl">Узор</label>
+            <select value={patternFactor} onChange={e=>setPatternFactor(+e.target.value)}>{PATTERN_FACTORS.map(p=><option key={p.label} value={p.value}>{p.label}</option>)}</select>
+          </div>
+        </>}
+        <div className="field"><label className="lbl">Есть в наличии (м)</label><input type="number" value={avail} onChange={e=>setAvail(e.target.value)} placeholder="0"/></div>
       </div>
-      <button className="btn bg bfull mt12" onClick={()=>{onUpdate(p=>({...p,gauge,dimensions:dim,safetyMargin:margin}));showToast("✓ Раппорт сохранён");}}>💾 Сохранить</button>
+      <div className="cr">
+        <div className="crr"><span>Нужно метров</span><span className="crv">{result.meters} м</span></div>
+        <div className="crr crb"><span>Нужно граммов</span><span className="crv">{result.grams} г</span></div>
+        {av>0&&<><div className="crd"/><div className="crr crb"><span>{diff>=0?"Остаток":"Нехватка"}</span><span className={diff>=0?"surplus":"shortage"}>{Math.abs(diff)} м {diff>=0?"✓":"⚠️"}</span></div></>}
+        {calcMode==="density"&&<div style={{marginTop:10,padding:"8px 10px",background:"rgba(255,255,255,0.05)",borderRadius:8,fontSize:11,color:"rgba(255,255,255,0.45)",lineHeight:1.5}}>⚖️ Для точного результата используйте «По весу образца»</div>}
+      </div>
+      {diff<0&&<button className="btn bgold bfull mt8" onClick={addToShopping}>{addedToList?"✓ Добавлено в список!":"🛒 Добавить в список покупок"}</button>}
     </>}
     {mode==="replace"&&<>
-      <div style={{fontSize:13,color:"var(--muted)",fontWeight:500,marginBottom:12,lineHeight:1.5}}>
-        Помогает пересчитать количество пряжи если заменяете одну на другую с другим метражом.
-      </div>
+      <div style={{fontSize:13,color:"var(--muted)",fontWeight:500,marginBottom:12,lineHeight:1.5}}>Пересчёт при замене пряжи с другим метражом на 100г.</div>
       <div className="card"><div className="ctit mb8">Пряжа по схеме (нужна)</div>
         <div className="grid2">
-          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={need.m} onChange={e=>setNeed({...need,m:+e.target.value})} placeholder="200"/></div>
-          <div className="field"><label className="lbl">Нужно граммов</label><input type="number" value={need.per100g} onChange={e=>setNeed({...need,per100g:+e.target.value})} placeholder="300"/></div>
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={needM} onChange={e=>setNeedM(+e.target.value)} placeholder="200"/></div>
+          <div className="field"><label className="lbl">Нужно г</label><input type="number" value={needGInput} onChange={e=>setNeedGInput(+e.target.value)} placeholder="300"/></div>
         </div>
       </div>
       <div className="card"><div className="ctit mb8">Ваша пряжа (есть)</div>
         <div className="grid2">
-          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={have.m} onChange={e=>setHave({...have,m:+e.target.value})} placeholder="150"/></div>
-          <div className="field"><label className="lbl">Граммов в наличии</label><input type="number" value={haveG} onChange={e=>setHaveG(+e.target.value)} placeholder="200"/></div>
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={haveM} onChange={e=>setHaveM(+e.target.value)} placeholder="150"/></div>
+          <div className="field"><label className="lbl">Есть г</label><input type="number" value={haveGInput} onChange={e=>setHaveGInput(+e.target.value)} placeholder="200"/></div>
         </div>
       </div>
       <div className="cr">
-        <div className="crr"><span>Метров по схеме нужно</span><span className="crv">{Math.round(need.per100g*(need.m/100))} м</span></div>
-        <div className="crr"><span>Метров у вас есть</span><span className="crv">{Math.round(haveG*(have.m/100))} м</span></div>
+        <div className="crr"><span>Нужно метров по схеме</span><span className="crv">{Math.round(needGInput*(needM/100))} м</span></div>
+        <div className="crr"><span>У вас метров</span><span className="crv">{Math.round(haveGInput*(haveM/100))} м</span></div>
         <div className="crd"/>
-        <div className="crr crb">
-          <span>Нужно вашей пряжи</span>
-          <span className="crv">{needG} г</span>
-        </div>
-        <div className="crr" style={{marginTop:4}}>
-          <span>{replaceDiff>=0?"Остаток":"Докупить"}</span>
-          <span className={replaceDiff>=0?"surplus":"shortage"}>{Math.abs(replaceDiff)} г {replaceDiff>=0?"✓":"⚠️"}</span>
-        </div>
+        <div className="crr crb"><span>Нужно вашей пряжи</span><span className="crv">{needGrams2} г</span></div>
+        <div className="crr"><span>{replaceDiff2>=0?"Остаток":"Докупить"}</span><span className={replaceDiff2>=0?"surplus":"shortage"}>{Math.abs(replaceDiff2)} г {replaceDiff2>=0?"✓":"⚠️"}</span></div>
       </div>
-    </>}
-  </div>);
-}
-
-// ── TIMELINE ──────────────────────────────────────────────────────────────────
-function TimelineTab({project,onUpdate,showToast}){
-  const [note,setNote]=useState("");const [show,setShow]=useState(false);const tl=project.timeline||[];
-  const add=()=>{if(!note.trim())return;const date=new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"short"});onUpdate(p=>({...p,timeline:[...(p.timeline||[]),{id:`t${Date.now()}`,date,note:note.trim()}]}));setNote("");setShow(false);showToast("✓ Запись добавлена");};
-  return(<div className="page"><div className="sh">Журнал <span>прогресса</span></div>
-    <button className="btn bp bfull mb12" onClick={()=>setShow(true)}>📝 Добавить запись</button>
-    {show&&<div className="card mb12"><textarea placeholder="Что сделали сегодня?" value={note} onChange={e=>setNote(e.target.value)} style={{marginBottom:8,minHeight:80}}/><div className="row"><button className="btn bp f1 bsm" onClick={add}>Добавить</button><button className="btn bl bsm" onClick={()=>setShow(false)}>Отмена</button></div></div>}
-    {tl.length===0?<div className="empty"><div className="eic">📸</div><div className="et">Журнал пустой</div><div className="ed">Добавляйте записи после каждой сессии вязания.</div></div>
-    :<div className="tlw">{[...tl].reverse().map(e=>(<div key={e.id} className="tli"><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><div className="tld"/></div><div><div className="tldate">{e.date}</div><div className="tlnote">{e.note}</div></div></div>))}</div>}
-  </div>);
-}
-
-// ── YARN PAGE ─────────────────────────────────────────────────────────────────
-function YarnPage({yarns,onDelete,onAdd,showToast,setData,data}){
-  const [showWTK,setShowWTK]=useState(false);const [aiLoading,setAiLoading]=useState(false);const [wtkResult,setWtkResult]=useState(null);
-  const totalM=yarns.reduce((a,y)=>a+(y.length||0),0);
-  const whatToKnitLocal=()=>{const r=WHAT_TO_KNIT.filter(i=>totalM>=i.minM).sort((a,b)=>b.minM-a.minM).slice(0,8);setWtkResult(r);setShowWTK(true);};
-  const whatToKnitAI=async()=>{
-    setAiLoading(true);
-    try{
-      const s=yarns.map(y=>`${y.name} ${y.colorName}: ${y.length}м (${y.category})`).join("\n");
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,
-          system:"Ты эксперт по вязанию. Ответь ТОЛЬКО JSON массивом без markdown. Элементы: {name,desc,minM}",
-          messages:[{role:"user",content:`Пряжа:\n${s}\nВсего: ${totalM}м. Что можно связать? 5-7 изделий.`}]})});
-      const d=await res.json();const text=d.content?.map(b=>b.text||"").join("")||"[]";
-      setWtkResult(JSON.parse(text.replace(/```json?|```/g,"").trim()));
-    }catch{whatToKnitLocal();}
-    setAiLoading(false);setShowWTK(true);
-  };
-  return(<div className="page"><div className="sh">Запас <span>пряжи</span></div>
-    {yarns.length>0&&<>
-      <div className="stat-row mb12">
-        <div className="stat-pill"><div className="stat-num">{yarns.length}</div><div className="stat-lbl">Мотков</div></div>
-        <div className="stat-pill"><div className="stat-num">{totalM}</div><div className="stat-lbl">Метров</div></div>
-      </div>
-      <button className="btn bgold bfull mb12" onClick={whatToKnitAI} disabled={aiLoading}>
-        {aiLoading?"✦ Думаю…":"✦ Что я могу связать?"}
-      </button>
-    </>}
-    {showWTK&&wtkResult&&<div className="card mb12">
-      <div className="ctit mb8">🧶 Можно связать из {totalM} м:</div>
-      {wtkResult.map((item,i)=>(
-        <div key={i} className="wtk-card">
-          <div className="wtk-name">{item.name}</div>
-          <div className="wtk-desc">{item.desc}</div>
-          <div className="wtk-meters">~{item.minM} м</div>
-        </div>
-      ))}
-      <button className="btn bl bfull bsm mt8" onClick={()=>setShowWTK(false)}>Закрыть</button>
-    </div>}
-    {yarns.length===0?<div className="empty"><div className="eic">🪢</div><div className="et">Запас пуст</div><div className="ed">Добавьте пряжу чтобы отслеживать запасы.</div><button className="btn bp mt12" style={{margin:"12px auto 0",display:"flex"}} onClick={onAdd}>＋ Добавить пряжу</button></div>
-    :yarns.map(y=>(<div key={y.id} className="yrow">
-        <div className="ysw" style={{background:y.color,boxShadow:`0 0 10px ${y.color}50`}}/>
-        <div className="f1"><div className="yn">{y.name}</div><div className="yd">{y.colorName} · {y.weight}г/{y.length}м · {y.category}</div></div>
-        <a className="shop-link" href={`${SHOP_URL}/search?q=${encodeURIComponent(y.name)}`} target="_blank" rel="noreferrer" title="Купить в Твоё хобби">🛍</a>
-        <button className="btn bd bsm" style={{marginLeft:4}} onClick={()=>onDelete(y.id)}>✕</button>
-      </div>))}
-    <ShoppingList data={data} setData={setData} showToast={showToast}/>
-  </div>);
-}
-
-function AddYarnForm({onAdd,onCancel}){
-  const [f,setF]=useState({name:"",colorName:"",color:YARN_COLORS[0],weight:"",length:"",category:"Ворстед"});
-  const [sug,setSug]=useState([]);const [showSug,setShowSug]=useState(false);
-  const handleName=v=>{setF(p=>({...p,name:v}));if(v.length>=2){const m=YARN_DB.filter(y=>y.brand.toLowerCase().includes(v.toLowerCase()));setSug(m.slice(0,6));setShowSug(m.length>0);}else{setSug([]);setShowSug(false);}};
-  const selectBrand=item=>{setF(p=>({...p,name:item.brand,weight:item.weight,length:item.length,category:item.category}));setShowSug(false);};
-  return(<>
-    <div style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:800,marginBottom:14}}>Добавить пряжу</div>
-    <div className="field"><label className="lbl">Бренд / название *</label>
-      <div className="autocomplete-wrap">
-        <input value={f.name} onChange={e=>handleName(e.target.value)} placeholder="Drops, Alize, YarnArt…" onBlur={()=>setTimeout(()=>setShowSug(false),200)}/>
-        {showSug&&<div className="autocomplete-list">{sug.map((s,i)=><div key={i} className="autocomplete-item" onClick={()=>selectBrand(s)}>{s.brand}<div className="autocomplete-sub">{s.weight}г · {s.length}м · {s.category}<a className="shop-link" href={`${SHOP_URL}/search?q=${encodeURIComponent(s.brand)}`} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}>🛍 В магазине</a></div></div>)}</div>}
-      </div></div>
-    <div className="field"><label className="lbl">Цвет / название</label><input value={f.colorName} onChange={e=>setF({...f,colorName:e.target.value})} placeholder="Морская волна"/></div>
-    <div className="field"><label className="lbl">Цвет</label><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>{YARN_COLORS.map(c=><div key={c} onClick={()=>setF({...f,color:c})} style={{width:26,height:26,borderRadius:"50%",background:c,cursor:"pointer",border:f.color===c?"3px solid var(--text)":"2px solid rgba(255,255,255,0.1)",transition:"all .15s"}}/>)}</div></div>
-    <div className="grid2">
-      <div className="field"><label className="lbl">Вес (г) *</label><input type="number" value={f.weight} onChange={e=>setF({...f,weight:e.target.value})} placeholder="100"/></div>
-      <div className="field"><label className="lbl">Длина (м)</label><input type="number" value={f.length} onChange={e=>setF({...f,length:e.target.value})} placeholder="200"/></div>
-    </div>
-    <div className="field"><label className="lbl">Категория</label><select value={f.category} onChange={e=>setF({...f,category:e.target.value})}>{YARN_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
-    <div className="row mt8"><button className="btn bp f1" onClick={()=>{if(!f.name||!f.weight)return;onAdd({...f,id:`y${Date.now()}`,weight:+f.weight,length:+f.length||0});}}>Добавить</button><button className="btn bl" onClick={onCancel}>Отмена</button></div>
-  </>);
-}
-
-// ── SHOPPING LIST ─────────────────────────────────────────────────────────────
-function ShoppingList({data,setData,showToast}){
-  const [newItem,setNewItem]=useState("");const [show,setShow]=useState(false);const list=data.shoppingList||[];
-  const add=()=>{if(!newItem.trim())return;setData(d=>({...d,shoppingList:[...(d.shoppingList||[]),{id:`sh${Date.now()}`,text:newItem.trim(),done:false}]}));setNewItem("");showToast("✓ Добавлено в список");};
-  const toggle=id=>setData(d=>({...d,shoppingList:d.shoppingList.map(s=>s.id===id?{...s,done:!s.done}:s)}));
-  const remove=id=>setData(d=>({...d,shoppingList:d.shoppingList.filter(s=>s.id!==id)}));
-  return(<div className="card mt12">
-    <div className="row mb8"><div className="ctit f1">🛒 Список покупок</div><button className="btn bl bsm" onClick={()=>setShow(s=>!s)}>＋</button></div>
-    {show&&<div className="row mb8"><input className="f1" placeholder="Что купить?" value={newItem} onChange={e=>setNewItem(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} style={{marginBottom:0}}/><button className="btn bp bsm" onClick={add}>OK</button></div>}
-    {list.length===0?<div style={{fontSize:12,color:"var(--muted)",fontWeight:500,textAlign:"center",padding:"8px 0"}}>Список пуст</div>
-    :list.map(s=>(<div key={s.id} className="shop-item"><div className={`shop-check ${s.done?"done":""}`} onClick={()=>toggle(s.id)}>{s.done?"✓":""}</div><div className={`shop-txt ${s.done?"done":""}`}>{s.text}</div><button onClick={()=>remove(s.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:14}}>✕</button></div>))}
-  </div>);
-}
-
-// ── TOOLS ─────────────────────────────────────────────────────────────────────
-function ToolsPage({tools,onDelete,onAdd}){
-  return(<div className="page"><div className="sh">Мои <span>инструменты</span></div>
-    {tools.length===0?<div className="empty"><div className="eic">🪡</div><div className="et">Инструментов нет</div><div className="ed">Добавьте спицы и крючки чтобы всегда знать что есть в наличии.</div><button className="btn bp mt12" style={{margin:"12px auto 0",display:"flex"}} onClick={onAdd}>＋ Добавить</button></div>
-    :tools.map(t=>(<div key={t.id} className="tool-row">
-        <div className="tool-icon">{TOOL_ICONS[t.type]||"🔧"}</div>
-        <div className="f1"><div className="yn">{t.type}{t.size?` ${t.size}мм`:""}</div><div className="yd">{[t.material,t.length&&`${t.length}см`,t.qty&&`×${t.qty}`].filter(Boolean).join(" · ")}</div>{t.notes&&<div className="yd" style={{fontStyle:"italic",marginTop:2}}>{t.notes}</div>}</div>
-        <button className="btn bd bsm" onClick={()=>onDelete(t.id)}>✕</button>
-      </div>))}
-  </div>);
-}
-function AddToolForm({onAdd,onCancel}){
-  const [f,setF]=useState({type:"Спицы прямые",size:"",length:"",material:"Металл",qty:"1",notes:""});
-  return(<>
-    <div style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:800,marginBottom:14}}>Добавить инструмент</div>
-    <div className="field"><label className="lbl">Тип *</label><select value={f.type} onChange={e=>setF({...f,type:e.target.value})}>{TOOL_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
-    <div className="grid2">
-      <div className="field"><label className="lbl">Размер (мм)</label><input type="number" step="0.5" value={f.size} onChange={e=>setF({...f,size:e.target.value})} placeholder="3.5"/></div>
-      <div className="field"><label className="lbl">Длина (см)</label><input type="number" value={f.length} onChange={e=>setF({...f,length:e.target.value})} placeholder="40"/></div>
-    </div>
-    <div className="grid2">
-      <div className="field"><label className="lbl">Материал</label><select value={f.material} onChange={e=>setF({...f,material:e.target.value})}>{TOOL_MATERIALS.map(m=><option key={m}>{m}</option>)}</select></div>
-      <div className="field"><label className="lbl">Количество</label><input type="number" value={f.qty} onChange={e=>setF({...f,qty:e.target.value})} placeholder="1"/></div>
-    </div>
-    <div className="field"><label className="lbl">Заметка</label><input value={f.notes} onChange={e=>setF({...f,notes:e.target.value})} placeholder="Набор, подарок…"/></div>
-    <div className="row mt8"><button className="btn bp f1" onClick={()=>{if(!f.type)return;onAdd({...f,id:`t${Date.now()}`,size:+f.size||"",length:+f.length||"",qty:+f.qty||1});}}>Добавить</button><button className="btn bl" onClick={onCancel}>Отмена</button></div>
-  </>);
-}
-
-// ── STANDALONE COUNTER ────────────────────────────────────────────────────────
-function StandaloneCounter(){
-  const SC_KEY="th_sc_v2";const load=()=>{try{const r=localStorage.getItem(SC_KEY);if(r)return JSON.parse(r);}catch{}return{counters:[{id:"c1",name:"Счётчик",count:0,goal:""}],active:"c1"};};
-  const [sc,setSC]=useState(load);const [bumping,setBumping]=useState(false);const [isMilestone,setIsMilestone]=useState(false);
-  useEffect(()=>{try{localStorage.setItem(SC_KEY,JSON.stringify(sc));}catch{}},[sc]);
-  const cur=sc.counters.find(c=>c.id===sc.active)||sc.counters[0];const pct=cur?.goal?Math.min(100,Math.round((cur.count||0)/+cur.goal*100)):null;
-  const updateCur=fn=>setSC(s=>({...s,counters:s.counters.map(c=>c.id===s.active?fn(c):c)}));
-  const delta=d=>{haptic(d>0?8:4);const n=Math.max(0,(cur?.count||0)+d);const wm=d>0&&n>0&&n%10===0;updateCur(c=>({...c,count:n}));setBumping(true);setTimeout(()=>setBumping(false),200);if(wm){setIsMilestone(true);setTimeout(()=>setIsMilestone(false),600);fireConfetti();}};
-  const addCounter=()=>{const id=`c${Date.now()}`;setSC(s=>({...s,counters:[...s.counters,{id,name:`Счётчик ${s.counters.length+1}`,count:0,goal:""}],active:id}));};
-  const removeCounter=id=>{if(sc.counters.length===1)return;const r=sc.counters.filter(c=>c.id!==id);setSC(s=>({...s,counters:r,active:s.active===id?r[0].id:s.active}));};
-  return(<div className="sc-wrap">
-    <div className="chips" style={{justifyContent:"center"}}>{sc.counters.map(c=><span key={c.id} className={`chip ${c.id===sc.active?"on":""}`} onClick={()=>{haptic(5);setSC(s=>({...s,active:c.id}));}}>{c.name}</span>)}<span className="chip" onClick={addCounter}>＋</span></div>
-    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><input className="sc-name" value={cur?.name||""} onChange={e=>updateCur(c=>({...c,name:e.target.value}))} placeholder="Название"/>{sc.counters.length>1&&<button onClick={()=>removeCounter(sc.active)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:16}}>🗑</button>}</div>
-    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}><span style={{fontSize:12,color:"var(--muted)",fontWeight:500}}>Цель:</span><input className="sc-goal-input" type="number" placeholder="—" value={cur?.goal||""} onChange={e=>updateCur(c=>({...c,goal:e.target.value}))}/><span style={{fontSize:12,color:"var(--muted)",fontWeight:500}}>рядов</span></div>
-    {cur?.goal&&pct!==null&&<div style={{marginBottom:4}}><Ring pct={pct} size={106} stroke={9} color={pct>=100?GOLD:TEAL}/></div>}
-    <div className={`counter-num ${bumping?"bump":""} ${isMilestone?"milestone":""}`}>{cur?.count||0}</div>
-    <div style={{display:"flex",alignItems:"center",gap:20}}><button className="cbtn cbtn-minus" onClick={()=>delta(-1)}>−</button><button className="cbtn cbtn-plus" onClick={()=>delta(1)}>+</button></div>
-    <div style={{display:"flex",gap:8,marginTop:16}}><button className="btn bl bsm" onClick={()=>delta(-10)}>−10</button><button className="btn bl bsm" onClick={()=>delta(10)}>+10</button><button className="btn bd bsm" onClick={()=>{haptic(20);updateCur(c=>({...c,count:0}));}}>Сброс</button></div>
-    {sc.counters.length>1&&<div style={{width:"100%",maxWidth:300,marginTop:22}}>
-      <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10,textAlign:"center"}}>Все счётчики</div>
-      {sc.counters.map(c=>(<div key={c.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 14px",background:"var(--card2)",border:"1px solid var(--border)",borderRadius:10,marginBottom:6,fontSize:13,fontWeight:600}}><span style={{color:"var(--muted2)"}}>{c.name}</span><span style={{color:"var(--teal)",fontWeight:800}}>{c.count}{c.goal?`/${c.goal}`:""}</span></div>))}
-    </div>}
-  </div>);
-}
-
-// ── STANDALONE CALC ───────────────────────────────────────────────────────────
-function StandaloneCalc({setData}){
-  const [mode,setMode]=useState("size");
-  const [g,setG]=useState({stitches:20,rows:28,size:10});const [d,setD]=useState({width:50,length:60});
-  const [density,setDensity]=useState(200);const [margin,setMargin]=useState(10);const [avail,setAvail]=useState("");
-  const [have,setHave]=useState({m:150,per100g:200});const [need,setNeed]=useState({m:200,per100g:300});const [haveG,setHaveG]=useState(200);
-  const stPcm=g.stitches/g.size,rPcm=g.rows/g.size,totalSt=Math.round(stPcm*d.width*rPcm*d.length);
-  const mBase=Math.round(totalSt*.003),mNeeded=Math.round(mBase*(1+margin/100)),gNeeded=Math.round(mNeeded/(density/100));
-  const av=+avail||0,diff=av-mNeeded;
-  const [addedToList,setAddedToList]=useState(false);
-  const addToShopping=()=>{setData(dd=>({...dd,shoppingList:[...(dd.shoppingList||[]),{id:`sh${Date.now()}`,text:`Пряжа ~${gNeeded}г (${mNeeded}м) для изделия ${d.width}×${d.length}см`,done:false}]}));setAddedToList(true);setTimeout(()=>setAddedToList(false),2000);};
-  const haveTotalM=haveG*(have.m/100);const needG=Math.round(haveTotalM/(need.m/100));const replaceDiff=haveG-needG;
-  return(<div className="page"><div className="sh">Быстрый <span>расчёт</span></div>
-    <div className="calc-tabs">
-      <div className={`calc-tab ${mode==="size"?"on":""}`} onClick={()=>setMode("size")}>📐 По размеру</div>
-      <div className={`calc-tab ${mode==="replace"?"on":""}`} onClick={()=>setMode("replace")}>🔄 Замена пряжи</div>
-    </div>
-    {mode==="size"&&<>
-      <div className="card"><div className="ctit mb8">Раппорт</div><div className="grid2"><div className="field"><label className="lbl">Петли</label><input type="number" value={g.stitches} onChange={e=>setG({...g,stitches:+e.target.value})}/></div><div className="field"><label className="lbl">Ряды</label><input type="number" value={g.rows} onChange={e=>setG({...g,rows:+e.target.value})}/></div></div><div className="field"><label className="lbl">Образец (см)</label><input type="number" value={g.size} onChange={e=>setG({...g,size:+e.target.value})}/></div></div>
-      <div className="card"><div className="ctit mb8">Размеры (см)</div><div className="grid2"><div className="field"><label className="lbl">Ширина</label><input type="number" value={d.width} onChange={e=>setD({...d,width:+e.target.value})}/></div><div className="field"><label className="lbl">Длина</label><input type="number" value={d.length} onChange={e=>setD({...d,length:+e.target.value})}/></div></div></div>
-      <div className="card"><div className="grid2"><div className="field"><label className="lbl">м/100г</label><input type="number" value={density} onChange={e=>setDensity(+e.target.value)}/></div><div className="field"><label className="lbl">Запас %</label><input type="number" value={margin} onChange={e=>setMargin(+e.target.value)}/></div></div><div className="field"><label className="lbl">Есть в наличии (м)</label><input type="number" value={avail} onChange={e=>setAvail(e.target.value)} placeholder="0"/></div></div>
-      <div className="cr"><div className="crr"><span>Петель итого</span><span className="crv">{totalSt.toLocaleString("ru")}</span></div><div className="crr"><span>Нужно метров</span><span className="crv">{mNeeded} м</span></div><div className="crr"><span>Примерно граммов</span><span className="crv">≈{gNeeded} г</span></div>{av>0&&<><div className="crd"/><div className="crr crb"><span>{diff>=0?"Остаток":"Нехватка"}</span><span className={diff>=0?"surplus":"shortage"}>{Math.abs(diff)} м {diff>=0?"✓":"⚠️"}</span></div></>}</div>
-      {diff<0&&<button className="btn bgold bfull mt8" onClick={addToShopping}>{addedToList?"✓ Добавлено!":"🛒 Добавить в список покупок"}</button>}
-    </>}
-    {mode==="replace"&&<>
-      <div style={{fontSize:13,color:"var(--muted)",fontWeight:500,marginBottom:12,lineHeight:1.5}}>Пересчёт при замене пряжи на другую с другим метражом.</div>
-      <div className="card"><div className="ctit mb8">Пряжа по схеме (нужна)</div><div className="grid2"><div className="field"><label className="lbl">м / 100г</label><input type="number" value={need.m} onChange={e=>setNeed({...need,m:+e.target.value})} placeholder="200"/></div><div className="field"><label className="lbl">Нужно г</label><input type="number" value={need.per100g} onChange={e=>setNeed({...need,per100g:+e.target.value})} placeholder="300"/></div></div></div>
-      <div className="card"><div className="ctit mb8">Ваша пряжа (есть)</div><div className="grid2"><div className="field"><label className="lbl">м / 100г</label><input type="number" value={have.m} onChange={e=>setHave({...have,m:+e.target.value})} placeholder="150"/></div><div className="field"><label className="lbl">Есть г</label><input type="number" value={haveG} onChange={e=>setHaveG(+e.target.value)} placeholder="200"/></div></div></div>
-      <div className="cr"><div className="crr"><span>Нужно метров по схеме</span><span className="crv">{Math.round(need.per100g*(need.m/100))} м</span></div><div className="crr"><span>У вас метров</span><span className="crv">{Math.round(haveG*(have.m/100))} м</span></div><div className="crd"/><div className="crr crb"><span>Нужно вашей пряжи</span><span className="crv">{needG} г</span></div><div className="crr"><span>{replaceDiff>=0?"Остаток":"Докупить"}</span><span className={replaceDiff>=0?"surplus":"shortage"}>{Math.abs(replaceDiff)} г {replaceDiff>=0?"✓":"⚠️"}</span></div></div>
     </>}
   </div>);
 }
@@ -1112,12 +1117,6 @@ function StandaloneCalc({setData}){
 function SettingsPage({data,user,onUpdate,onClear,onLogout}){
   const [confirm,setConfirm]=useState(false);const dark=data.dark!==false;const fs=data.fontSize||"md";
   const totalRows=data.projects.reduce((a,p)=>(p.sections||[]).reduce((b,s)=>b+(s.count||0),a),0);
-  // Push notifications
-  const requestPush=async()=>{
-    if(!("Notification" in window)){alert("Ваш браузер не поддерживает уведомления");return;}
-    const perm=await Notification.requestPermission();
-    if(perm==="granted"){new Notification("Твоё хобби 🧶",{body:"Уведомления включены! Мы напомним когда пора вязать.",icon:"/icon-192.png"});}
-  };
   return(<div className="page">
     <div className="sh">⚙️ <span>Настройки</span></div>
     {/* Theme */}
@@ -1138,14 +1137,16 @@ function SettingsPage({data,user,onUpdate,onClear,onLogout}){
         </div>
       </div>
     </div>
-    {/* Notifications */}
+    {/* Notifications - Coming Soon */}
     <div className="card">
       <div className="ctit mb8">🔔 Уведомления</div>
-      <div style={{fontSize:13,color:"var(--muted)",fontWeight:500,marginBottom:10,lineHeight:1.5}}>Разрешите уведомления чтобы приложение напоминало о вязании.</div>
-      <button className="btn bp bfull" onClick={requestPush}>Включить уведомления</button>
-      {data.reminderTime&&<div style={{fontSize:12,color:"var(--muted)",marginTop:8,textAlign:"center"}}>Напоминание: {data.reminderTime}</div>}
-      <div className="field mt8"><label className="lbl">Время напоминания</label>
-        <input type="time" value={data.reminderTime||""} onChange={e=>onUpdate("reminderTime",e.target.value)} placeholder="21:00"/>
+      <div style={{display:"flex",alignItems:"flex-start",gap:10,background:"rgba(245,200,66,0.07)",border:"1px solid rgba(245,200,66,0.2)",borderRadius:12,padding:"12px",marginBottom:10}}>
+        <span style={{fontSize:20,flexShrink:0}}>🔔</span>
+        <div>
+          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:13,color:"var(--text)",marginBottom:3}}>Скоро</div>
+          <div style={{fontSize:12,fontWeight:500,color:"var(--muted)",lineHeight:1.5}}>Push-уведомления и напоминания о вязании появятся в следующем обновлении.</div>
+        </div>
+        <span style={{background:"rgba(245,200,66,0.2)",color:"var(--gold)",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,letterSpacing:".06em",flexShrink:0}}>СКОРО</span>
       </div>
     </div>
     {/* Account */}
@@ -1190,58 +1191,205 @@ function SettingsPage({data,user,onUpdate,onClear,onLogout}){
 }
 
 // ── NEW PROJECT SHEET ─────────────────────────────────────────────────────────
-function NewProjectSheet({onClose,onCreate}){
-  const [mode,setMode]=useState(null);const [loading,setLoading]=useState(false);const [textIn,setTextIn]=useState("");const [urlIn,setUrlIn]=useState("");
-  const [form,setForm]=useState({name:"",type:"Свитер",size:"M",notes:"",gauge:{stitches:20,rows:28,size:10},dimensions:{width:50,length:60},status:"queued"});
-  const callAI=async(prompt)=>{
-    setLoading(true);
-    try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,
-          system:"Ты помощник вязальщицы. Извлеки параметры из схемы и верни ТОЛЬКО JSON без markdown: name,type(Свитер/Кардиган/Шапка/Шарф/Шаль/Носки/Варежки/Плед/Другое),size,gauge_stitches,gauge_rows,gauge_size_cm,width_cm,length_cm,yarn_name,yarn_weight_g,yarn_length_m,yarn_category,notes. null для неизвестных.",
-          messages:[{role:"user",content:prompt}]})});
-      const d=await res.json();const text=d.content?.map(b=>b.text||"").join("")||"{}";
-      const p=JSON.parse(text.replace(/```json?|```/g,"").trim());
-      setForm(f=>({...f,name:p.name||f.name,type:p.type||f.type,size:p.size||f.size,notes:p.notes||f.notes,
-        gauge:{stitches:p.gauge_stitches||20,rows:p.gauge_rows||28,size:p.gauge_size_cm||10},
-        dimensions:{width:p.width_cm||50,length:p.length_cm||60},
-        _yarn:p.yarn_name?{id:`y${Date.now()}`,name:p.yarn_name,colorName:"",color:YARN_COLORS[0],weight:p.yarn_weight_g||100,length:p.yarn_length_m||200,category:p.yarn_category||"Ворстед"}:null}));
-      setMode("review");
-    }catch{setMode("review");}
-    setLoading(false);
+
+// ── YARN PAGE ─────────────────────────────────────────────────────────────────
+function YarnPage({yarns,onDelete,onAdd,showToast,setData,data}){
+  const [showWTK,setShowWTK]=useState(false);const [wtkResult,setWtkResult]=useState(null);
+  const totalM=yarns.reduce((a,y)=>a+(y.length||0),0);
+  const whatToKnit=()=>{
+    const r=WHAT_TO_KNIT.filter(i=>totalM>=i.minM).sort((a,b)=>b.minM-a.minM).slice(0,8);
+    setWtkResult(r);setShowWTK(true);
   };
-  const build=f=>({id:`p${Date.now()}`,...f,yarns:f._yarn?[f._yarn]:[],steps:[],
+  return(<div className="page"><div className="sh">Запас <span>пряжи</span></div>
+    {yarns.length>0&&<>
+      <div className="stat-row mb12">
+        <div className="stat-pill"><div className="stat-num">{yarns.length}</div><div className="stat-lbl">Мотков</div></div>
+        <div className="stat-pill"><div className="stat-num">{totalM}</div><div className="stat-lbl">Метров</div></div>
+      </div>
+      <button className="btn bgold bfull mb12" onClick={whatToKnit}>🧶 Что я могу связать?</button>
+    </>}
+    {showWTK&&wtkResult&&<div className="card mb12">
+      <div className="ctit mb8">🧶 Можно связать из {totalM} м:</div>
+      {wtkResult.map((item,i)=>(<div key={i} className="wtk-card"><div className="wtk-name">{item.name}</div><div className="wtk-desc">{item.desc}</div><div className="wtk-meters">от {item.minM} м</div></div>))}
+      <button className="btn bl bfull bsm mt8" onClick={()=>setShowWTK(false)}>Закрыть</button>
+    </div>}
+    {yarns.length===0?<div className="empty"><div className="eic">🪢</div><div className="et">Запас пуст</div><div className="ed">Добавьте пряжу чтобы отслеживать запасы.</div><button className="btn bp mt12" style={{margin:"12px auto 0",display:"flex"}} onClick={onAdd}>＋ Добавить пряжу</button></div>
+    :yarns.map(y=>(<div key={y.id} className="yrow">
+        <div className="ysw" style={{background:y.color,boxShadow:`0 0 10px ${y.color}50`}}/>
+        <div className="f1"><div className="yn">{y.name}</div><div className="yd">{y.colorName} · {y.weight}г/{y.length}м · {y.category}</div></div>
+        <a className="shop-link" href={`${SHOP_URL}/search?q=${encodeURIComponent(y.name)}`} target="_blank" rel="noreferrer" title="Купить в Твоё хобби">🛍</a>
+        <button className="btn bd bsm" style={{marginLeft:4}} onClick={()=>onDelete(y.id)}>✕</button>
+      </div>))}
+    <ShoppingList data={data} setData={setData} showToast={showToast}/>
+  </div>);
+}
+
+function AddYarnForm({onAdd,onCancel}){
+  const [f,setF]=useState({name:"",colorName:"",color:YARN_COLORS[0],weight:"",length:"",category:"Ворстед"});
+  const [sug,setSug]=useState([]);const [showSug,setShowSug]=useState(false);
+  const handleName=v=>{setF(p=>({...p,name:v}));if(v.length>=2){const m=YARN_DB.filter(y=>y.brand.toLowerCase().includes(v.toLowerCase()));setSug(m.slice(0,6));setShowSug(m.length>0);}else{setSug([]);setShowSug(false);}};
+  const selectBrand=item=>{setF(p=>({...p,name:item.brand,weight:item.weight,length:item.length,category:item.category}));setShowSug(false);};
+  return(<>
+    <div style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:800,marginBottom:14}}>Добавить пряжу</div>
+    <div className="field"><label className="lbl">Бренд / название *</label>
+      <div className="autocomplete-wrap">
+        <input value={f.name} onChange={e=>handleName(e.target.value)} placeholder="Drops, Alize, YarnArt…" onBlur={()=>setTimeout(()=>setShowSug(false),200)}/>
+        {showSug&&<div className="autocomplete-list">{sug.map((s,i)=>(
+          <div key={i} className="autocomplete-item" onClick={()=>selectBrand(s)}>
+            {s.brand}<div className="autocomplete-sub">{s.weight}г · {s.length}м · {s.category}</div>
+          </div>
+        ))}</div>}
+      </div></div>
+    <div className="field"><label className="lbl">Цвет / название</label><input value={f.colorName} onChange={e=>setF({...f,colorName:e.target.value})} placeholder="Морская волна"/></div>
+    <div className="field"><label className="lbl">Цвет</label><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>{YARN_COLORS.map(c=><div key={c} onClick={()=>setF({...f,color:c})} style={{width:26,height:26,borderRadius:"50%",background:c,cursor:"pointer",border:f.color===c?"3px solid var(--text)":"2px solid rgba(255,255,255,0.1)",transition:"all .15s"}}/>)}</div></div>
+    <div className="grid2">
+      <div className="field"><label className="lbl">Вес (г) *</label><input type="number" value={f.weight} onChange={e=>setF({...f,weight:e.target.value})} placeholder="100"/></div>
+      <div className="field"><label className="lbl">Длина (м)</label><input type="number" value={f.length} onChange={e=>setF({...f,length:e.target.value})} placeholder="200"/></div>
+    </div>
+    <div className="field"><label className="lbl">Категория</label><select value={f.category} onChange={e=>setF({...f,category:e.target.value})}>{YARN_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+    <div className="row mt8"><button className="btn bp f1" onClick={()=>{if(!f.name||!f.weight)return;onAdd({...f,id:`y${Date.now()}`,weight:+f.weight,length:+f.length||0});}}>Добавить</button><button className="btn bl" onClick={onCancel}>Отмена</button></div>
+  </>);
+}
+
+function ShoppingList({data,setData,showToast}){
+  const [newItem,setNewItem]=useState("");const [show,setShow]=useState(false);const list=data.shoppingList||[];
+  const add=()=>{if(!newItem.trim())return;setData(d=>({...d,shoppingList:[...(d.shoppingList||[]),{id:`sh${Date.now()}`,text:newItem.trim(),done:false}]}));setNewItem("");if(showToast)showToast("✓ Добавлено");};
+  const toggle=id=>setData(d=>({...d,shoppingList:d.shoppingList.map(s=>s.id===id?{...s,done:!s.done}:s)}));
+  const remove=id=>setData(d=>({...d,shoppingList:d.shoppingList.filter(s=>s.id!==id)}));
+  return(<div className="card mt12">
+    <div className="row mb8"><div className="ctit f1">🛒 Список покупок</div><button className="btn bl bsm" onClick={()=>setShow(s=>!s)}>＋</button></div>
+    {show&&<div className="row mb8"><input className="f1" placeholder="Что купить?" value={newItem} onChange={e=>setNewItem(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} style={{marginBottom:0}}/><button className="btn bp bsm" onClick={add}>OK</button></div>}
+    {list.length===0?<div style={{fontSize:12,color:"var(--muted)",fontWeight:500,textAlign:"center",padding:"8px 0"}}>Список пуст</div>
+    :list.map(s=>(<div key={s.id} className="shop-item"><div className={`shop-check ${s.done?"done":""}`} onClick={()=>toggle(s.id)}>{s.done?"✓":""}</div><div className={`shop-txt ${s.done?"done":""}`}>{s.text}</div><button onClick={()=>remove(s.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:14}}>✕</button></div>))}
+  </div>);
+}
+
+// ── TOOLS PAGE ────────────────────────────────────────────────────────────────
+function ToolsPage({tools,onDelete,onAdd}){
+  return(<div className="page"><div className="sh">Мои <span>инструменты</span></div>
+    {tools.length===0?<div className="empty"><div className="eic">🪡</div><div className="et">Инструментов нет</div><div className="ed">Добавьте спицы и крючки чтобы всегда знать что есть в наличии.</div><button className="btn bp mt12" style={{margin:"12px auto 0",display:"flex"}} onClick={onAdd}>＋ Добавить</button></div>
+    :tools.map(t=>(<div key={t.id} className="tool-row">
+        <div className="tool-icon">{TOOL_ICONS[t.type]||"🔧"}</div>
+        <div className="f1"><div className="yn">{t.type}{t.size?` ${t.size}мм`:""}</div><div className="yd">{[t.material,t.length&&`${t.length}см`,t.qty&&`×${t.qty}`].filter(Boolean).join(" · ")}</div>{t.notes&&<div className="yd" style={{fontStyle:"italic",marginTop:2}}>{t.notes}</div>}</div>
+        <button className="btn bd bsm" onClick={()=>onDelete(t.id)}>✕</button>
+      </div>))}
+  </div>);
+}
+
+function AddToolForm({onAdd,onCancel}){
+  const [f,setF]=useState({type:"Спицы прямые",size:"",length:"",material:"Металл",qty:"1",notes:""});
+  return(<>
+    <div style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:800,marginBottom:14}}>Добавить инструмент</div>
+    <div className="field"><label className="lbl">Тип *</label><select value={f.type} onChange={e=>setF({...f,type:e.target.value})}>{TOOL_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+    <div className="grid2">
+      <div className="field"><label className="lbl">Размер (мм)</label><input type="number" step="0.5" value={f.size} onChange={e=>setF({...f,size:e.target.value})} placeholder="3.5"/></div>
+      <div className="field"><label className="lbl">Длина (см)</label><input type="number" value={f.length} onChange={e=>setF({...f,length:e.target.value})} placeholder="40"/></div>
+    </div>
+    <div className="grid2">
+      <div className="field"><label className="lbl">Материал</label><select value={f.material} onChange={e=>setF({...f,material:e.target.value})}>{TOOL_MATERIALS.map(m=><option key={m}>{m}</option>)}</select></div>
+      <div className="field"><label className="lbl">Количество</label><input type="number" value={f.qty} onChange={e=>setF({...f,qty:e.target.value})} placeholder="1"/></div>
+    </div>
+    <div className="field"><label className="lbl">Заметка</label><input value={f.notes} onChange={e=>setF({...f,notes:e.target.value})} placeholder="Набор, подарок…"/></div>
+    <div className="row mt8"><button className="btn bp f1" onClick={()=>{if(!f.type)return;onAdd({...f,id:`t${Date.now()}`,size:+f.size||"",length:+f.length||"",qty:+f.qty||1});}}>Добавить</button><button className="btn bl" onClick={onCancel}>Отмена</button></div>
+  </>);
+}
+
+// ── STANDALONE COUNTER ────────────────────────────────────────────────────────
+function StandaloneCounter(){
+  const SC_KEY="th_sc_v2";
+  const load=()=>{try{const r=localStorage.getItem(SC_KEY);if(r)return JSON.parse(r);}catch{}return{counters:[{id:"c1",name:"Счётчик",count:0,goal:""}],active:"c1"};};
+  const [sc,setSC]=useState(load);const [bumping,setBumping]=useState(false);const [isMilestone,setIsMilestone]=useState(false);
+  useEffect(()=>{try{localStorage.setItem(SC_KEY,JSON.stringify(sc));}catch{}},[sc]);
+  const cur=sc.counters.find(c=>c.id===sc.active)||sc.counters[0];
+  const pct=cur?.goal?Math.min(100,Math.round((cur.count||0)/+cur.goal*100)):null;
+  const updateCur=fn=>setSC(s=>({...s,counters:s.counters.map(c=>c.id===s.active?fn(c):c)}));
+  const delta=d=>{
+    haptic(d>0?8:4);const n=Math.max(0,(cur?.count||0)+d);
+    const wm=d>0&&n>0&&n%10===0;
+    updateCur(c=>({...c,count:n}));
+    setBumping(true);setTimeout(()=>setBumping(false),200);
+    if(wm){setIsMilestone(true);setTimeout(()=>setIsMilestone(false),600);fireConfetti();}
+  };
+  const addCounter=()=>{const id=`c${Date.now()}`;setSC(s=>({...s,counters:[...s.counters,{id,name:`Счётчик ${s.counters.length+1}`,count:0,goal:""}],active:id}));};
+  const removeCounter=id=>{if(sc.counters.length===1)return;const r=sc.counters.filter(c=>c.id!==id);setSC(s=>({...s,counters:r,active:s.active===id?r[0].id:s.active}));};
+  return(<div className="sc-wrap">
+    <div className="chips" style={{justifyContent:"center"}}>
+      {sc.counters.map(c=><span key={c.id} className={`chip ${c.id===sc.active?"on":""}`} onClick={()=>{haptic(5);setSC(s=>({...s,active:c.id}));}}>{c.name}</span>)}
+      <span className="chip" onClick={addCounter}>＋</span>
+    </div>
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+      <input className="sc-name" value={cur?.name||""} onChange={e=>updateCur(c=>({...c,name:e.target.value}))} placeholder="Название"/>
+      {sc.counters.length>1&&<button onClick={()=>removeCounter(sc.active)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:16}}>🗑</button>}
+    </div>
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+      <span style={{fontSize:12,color:"var(--muted)",fontWeight:500}}>Цель:</span>
+      <input className="sc-goal-input" type="number" placeholder="—" value={cur?.goal||""} onChange={e=>updateCur(c=>({...c,goal:e.target.value}))}/>
+      <span style={{fontSize:12,color:"var(--muted)",fontWeight:500}}>рядов</span>
+    </div>
+    {cur?.goal&&pct!==null&&<div style={{marginBottom:4}}><Ring pct={pct} size={106} stroke={9} color={pct>=100?GOLD:TEAL}/></div>}
+    <div className={`counter-num ${bumping?"bump":""} ${isMilestone?"milestone":""}`}>{cur?.count||0}</div>
+    <div style={{display:"flex",alignItems:"center",gap:20}}>
+      <button className="cbtn cbtn-minus" onClick={()=>delta(-1)}>−</button>
+      <button className="cbtn cbtn-plus" onClick={()=>delta(1)}>+</button>
+    </div>
+    <div style={{display:"flex",gap:8,marginTop:16}}>
+      <button className="btn bl bsm" onClick={()=>delta(-10)}>−10</button>
+      <button className="btn bl bsm" onClick={()=>delta(10)}>+10</button>
+      <button className="btn bd bsm" onClick={()=>{haptic(20);updateCur(c=>({...c,count:0}));}}>Сброс</button>
+    </div>
+    {sc.counters.length>1&&<div style={{width:"100%",maxWidth:300,marginTop:22}}>
+      <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10,textAlign:"center"}}>Все счётчики</div>
+      {sc.counters.map(c=>(<div key={c.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 14px",background:"var(--card2)",border:"1px solid var(--border)",borderRadius:10,marginBottom:6,fontSize:13,fontWeight:600}}>
+        <span style={{color:"var(--muted2)"}}>{c.name}</span>
+        <span style={{color:"var(--teal)",fontWeight:800}}>{c.count}{c.goal?`/${c.goal}`:""}</span>
+      </div>))}
+    </div>}
+  </div>);
+}
+
+function NewProjectSheet({onClose,onCreate}){
+  const [mode,setMode]=useState(null);
+  const [form,setForm]=useState({name:"",type:"Свитер",size:"M",notes:"",gauge:{stitches:20,rows:28,size:10},dimensions:{width:50,length:60},status:"queued"});
+  const build=f=>({id:`p${Date.now()}`,...f,yarns:[],steps:[],
     sections:[{id:`sa${Date.now()}`,name:"Перед",count:0,goal:null},{id:`sb${Date.now()}`,name:"Спинка",count:0,goal:null}],
     timeline:[],safetyMargin:10,inspoPhoto:null,resultPhoto:null,createdAt:new Date().toISOString().split("T")[0]});
   return(<Overlay onClose={onClose}>
     {!mode&&<>
       <div style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:800,marginBottom:14}}>Новый проект</div>
       <div style={{height:2,background:"linear-gradient(90deg,var(--teal),var(--navy))",borderRadius:2,marginBottom:14}}/>
-      <div className="mcard" onClick={()=>setMode("manual")}><div style={{fontSize:24,marginBottom:4}}>✏️</div><div className="mct">С нуля</div><div className="mcd">Заполню все поля вручную</div></div>
-      <div className="mcard" onClick={()=>setMode("text")}><div className="row mb8" style={{gap:8}}><span style={{fontSize:22}}>📋</span><span className="ai-tag">✦ ИИ</span></div><div className="mct">Вставить текст схемы</div><div className="mcd">ИИ извлечёт параметры автоматически</div></div>
-      <div className="mcard" onClick={()=>setMode("url")}><div className="row mb8" style={{gap:8}}><span style={{fontSize:22}}>🔗</span><span className="ai-tag">✦ ИИ</span></div><div className="mct">Импорт по ссылке</div><div className="mcd">Ravelry, Etsy, блог</div></div>
+
+      {/* Ручной ввод — работает полностью */}
+      <div className="mcard" onClick={()=>setMode("manual")}>
+        <div style={{fontSize:24,marginBottom:4}}>✏️</div>
+        <div className="mct">С нуля</div>
+        <div className="mcd">Заполню все поля вручную</div>
+      </div>
+
+      {/* ИИ-парсинг текста — Coming Soon */}
+      <div className="mcard" style={{opacity:0.45,cursor:"default",position:"relative",userSelect:"none"}}>
+        <div style={{position:"absolute",top:10,right:12,background:"rgba(245,200,66,0.2)",color:"var(--gold)",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,letterSpacing:".06em"}}>СКОРО</div>
+        <div style={{fontSize:22,marginBottom:4}}>📋</div>
+        <div className="mct">Вставить текст схемы</div>
+        <div className="mcd">Автозаполнение из текста паттерна — появится в следующем обновлении</div>
+      </div>
+
+      {/* Импорт по URL — Coming Soon */}
+      <div className="mcard" style={{opacity:0.45,cursor:"default",position:"relative",userSelect:"none"}}>
+        <div style={{position:"absolute",top:10,right:12,background:"rgba(245,200,66,0.2)",color:"var(--gold)",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,letterSpacing:".06em"}}>СКОРО</div>
+        <div style={{fontSize:22,marginBottom:4}}>🔗</div>
+        <div className="mct">Импорт по ссылке</div>
+        <div className="mcd">Ravelry, Etsy, блог — появится в следующем обновлении</div>
+      </div>
+
       <button className="btn bl bfull mt8" onClick={onClose}>Отмена</button>
     </>}
-    {(mode==="manual"||mode==="review")&&<ManualForm form={form} setForm={setForm} isAI={mode==="review"} onCreate={()=>onCreate(build(form))} onBack={()=>setMode(null)}/>}
-    {mode==="text"&&<>
-      <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800,marginBottom:10}}>Вставьте текст схемы</div>
-      <textarea placeholder="Вставьте описание схемы…" value={textIn} onChange={e=>setTextIn(e.target.value)} style={{minHeight:130,marginBottom:10}}/>
-      {loading&&<div className="loading mb8">✦ Анализирую схему…</div>}
-      {!loading&&<div className="row"><button className="btn bp f1" onClick={()=>callAI(`Схема вязания:\n\n${textIn}`)}>✦ Извлечь</button><button className="btn bl" onClick={()=>setMode(null)}>Назад</button></div>}
-    </>}
-    {mode==="url"&&<>
-      <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800,marginBottom:10}}>Ссылка на схему</div>
-      <input placeholder="https://www.ravelry.com/…" value={urlIn} onChange={e=>setUrlIn(e.target.value)} style={{marginBottom:10}}/>
-      {loading&&<div className="loading mb8">✦ Загружаю…</div>}
-      {!loading&&<div className="row"><button className="btn bp f1" onClick={()=>callAI(`Параметры схемы по ссылке: ${urlIn}`)}>✦ Импорт</button><button className="btn bl" onClick={()=>setMode(null)}>Назад</button></div>}
-    </>}
+    {mode==="manual"&&<ManualForm form={form} setForm={setForm} onCreate={()=>onCreate(build(form))} onBack={()=>setMode(null)}/>}
   </Overlay>);
 }
 
-function ManualForm({form,setForm,onCreate,onBack,isAI}){
+function ManualForm({form,setForm,onCreate,onBack}){
   const g=form.gauge||{stitches:20,rows:28,size:10};const d=form.dimensions||{width:50,length:60};
-  return(<>
-    {isAI&&<div style={{background:"rgba(27,174,200,0.1)",border:"1px solid rgba(27,174,200,0.2)",borderRadius:10,padding:"8px 12px",fontSize:12,fontWeight:600,color:"var(--teal)",marginBottom:12}}>✦ ИИ заполнил поля — проверьте</div>}
+  return(<>g:"8px 12px",fontSize:12,fontWeight:600,color:"var(--teal)",marginBottom:12}}>✦ ИИ заполнил поля — проверьте</div>}
     <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800,marginBottom:12}}>{isAI?"Проверить и создать":"Новый проект"}</div>
     <div className="field"><label className="lbl">Название *</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Норвежский свитер"/></div>
     <div className="grid2">
