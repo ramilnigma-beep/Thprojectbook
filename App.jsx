@@ -91,7 +91,7 @@ const DEMO = {
   id:"demo",name:"Норвежский свитер",type:"Свитер",size:"M (46–48)",status:"in-progress",
   gauge:{stitches:22,rows:30,size:10},dimensions:{width:54,length:66},safetyMargin:10,
   notes:"Скандинавский узор с оленями. Спицы 3.5 мм, снизу вверх.",
-  inspoPhoto:null,resultPhoto:null,
+  inspoPhoto:null,resultPhoto:null,labelPhoto:null,
   yarns:[
     {id:"y1",name:"Drops Karisma",colorName:"Морская волна",color:"#1BAEC8",weight:200,length:200,category:"Ворстед"},
     {id:"y2",name:"Drops Karisma",colorName:"Тёмно-синий",color:"#3A6BC8",weight:100,length:100,category:"Ворстед"},
@@ -788,22 +788,33 @@ function OverviewTab({project,onUpdate,showToast}){
     </div>
     <div className="row mb12" style={{justifyContent:"flex-end",gap:8}}>
       <button className="btn bl bsm" onClick={()=>setEditing(true)}>✏️ Редактировать</button>
-      <button className="btn bgold bsm" onClick={()=>exportProjectCard(project)} title="Сохранить карточку для Instagram">📤 Поделиться</button>
+
     </div>
     {/* Фото */}
     <div className="card">
       <div className="ctit mb8">📸 Фото проекта</div>
-      <div className="grid2">
-        <div><div className="lbl" style={{marginBottom:6}}>Вдохновение</div>
-          <label className="photo-slot" style={{height:105,display:"flex"}}>
-            {project.inspoPhoto?<img src={project.inspoPhoto} alt=""/>:<div className="photo-slot-label"><div className="photo-slot-icon">🖼</div><div className="photo-slot-txt">Добавить фото</div></div>}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+        <div>
+          <div className="lbl" style={{marginBottom:6}}>Вдохновение</div>
+          <label className="photo-slot" style={{height:90,display:"flex"}}>
+            {project.inspoPhoto?<img src={project.inspoPhoto} alt=""/>:<div className="photo-slot-label"><div className="photo-slot-icon">🖼</div><div className="photo-slot-txt">Добавить</div></div>}
             <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>handlePhoto("inspoPhoto",e)}/>
-          </label></div>
-        <div><div className="lbl" style={{marginBottom:6}}>Результат</div>
-          <label className="photo-slot" style={{height:105,display:"flex"}}>
-            {project.resultPhoto?<img src={project.resultPhoto} alt=""/>:<div className="photo-slot-label"><div className="photo-slot-icon">✨</div><div className="photo-slot-txt">Готовая работа</div></div>}
+          </label>
+        </div>
+        <div>
+          <div className="lbl" style={{marginBottom:6}}>Результат</div>
+          <label className="photo-slot" style={{height:90,display:"flex"}}>
+            {project.resultPhoto?<img src={project.resultPhoto} alt=""/>:<div className="photo-slot-label"><div className="photo-slot-icon">✨</div><div className="photo-slot-txt">Добавить</div></div>}
             <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>handlePhoto("resultPhoto",e)}/>
-          </label></div>
+          </label>
+        </div>
+        <div>
+          <div className="lbl" style={{marginBottom:6}}>Этикетка</div>
+          <label className="photo-slot" style={{height:90,display:"flex"}}>
+            {project.labelPhoto?<img src={project.labelPhoto} alt=""/>:<div className="photo-slot-label"><div className="photo-slot-icon">🏷</div><div className="photo-slot-txt">Добавить</div></div>}
+            <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>handlePhoto("labelPhoto",e)}/>
+          </label>
+        </div>
       </div>
     </div>
     <div className="card">
@@ -1192,6 +1203,66 @@ function SettingsPage({data,user,onUpdate,onClear,onLogout}){
 
 // ── NEW PROJECT SHEET ─────────────────────────────────────────────────────────
 
+// ── TIMELINE TAB ─────────────────────────────────────────────────────────────
+function TimelineTab({project,onUpdate,showToast}){
+  const [note,setNote]=useState("");
+  const [show,setShow]=useState(false);
+  const tl=project.timeline||[];
+
+  const add=()=>{
+    if(!note.trim())return;
+    const date=new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"short"});
+    onUpdate(p=>({...p,timeline:[...(p.timeline||[]),{id:`t${Date.now()}`,date,note:note.trim()}]}));
+    setNote("");setShow(false);
+    showToast("✓ Запись добавлена");
+  };
+
+  const remove=id=>{
+    onUpdate(p=>({...p,timeline:(p.timeline||[]).filter(e=>e.id!==id)}));
+  };
+
+  return(
+    <div className="page">
+      <div className="sh">Журнал <span>прогресса</span></div>
+      <button className="btn bp bfull mb12" onClick={()=>setShow(true)}>📝 Добавить запись</button>
+      {show&&(
+        <div className="card mb12">
+          <textarea
+            placeholder="Что сделали сегодня? Сколько рядов, какие сложности…"
+            value={note} onChange={e=>setNote(e.target.value)}
+            style={{marginBottom:8,minHeight:80}}
+          />
+          <div className="row">
+            <button className="btn bp f1 bsm" onClick={add}>Добавить</button>
+            <button className="btn bl bsm" onClick={()=>{setShow(false);setNote("");}}>Отмена</button>
+          </div>
+        </div>
+      )}
+      {tl.length===0
+        ?<div className="empty">
+            <div className="eic">📸</div>
+            <div className="et">Журнал пустой</div>
+            <div className="ed">Добавляйте записи после каждой сессии вязания — это поможет отслеживать прогресс.</div>
+          </div>
+        :<div className="tlw">
+            {[...tl].reverse().map(e=>(
+              <div key={e.id} className="tli">
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+                  <div className="tld"/>
+                </div>
+                <div className="f1">
+                  <div className="tldate">{e.date}</div>
+                  <div className="tlnote">{e.note}</div>
+                </div>
+                <button onClick={()=>remove(e.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:14,flexShrink:0,paddingLeft:8}}>✕</button>
+              </div>
+            ))}
+          </div>
+      }
+    </div>
+  );
+}
+
 // ── YARN PAGE ─────────────────────────────────────────────────────────────────
 function YarnPage({yarns,onDelete,onAdd,showToast,setData,data}){
   const [showWTK,setShowWTK]=useState(false);const [wtkResult,setWtkResult]=useState(null);
@@ -1352,7 +1423,7 @@ function NewProjectSheet({onClose,onCreate}){
   const [form,setForm]=useState({name:"",type:"Свитер",size:"M",notes:"",gauge:{stitches:20,rows:28,size:10},dimensions:{width:50,length:60},status:"queued"});
   const build=f=>({id:`p${Date.now()}`,...f,yarns:[],steps:[],
     sections:[{id:`sa${Date.now()}`,name:"Перед",count:0,goal:null},{id:`sb${Date.now()}`,name:"Спинка",count:0,goal:null}],
-    timeline:[],safetyMargin:10,inspoPhoto:null,resultPhoto:null,createdAt:new Date().toISOString().split("T")[0]});
+    timeline:[],safetyMargin:10,inspoPhoto:null,resultPhoto:null,labelPhoto:null,createdAt:new Date().toISOString().split("T")[0]});
   return(<Overlay onClose={onClose}>
     {!mode&&<>
       <div style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:800,marginBottom:14}}>Новый проект</div>
