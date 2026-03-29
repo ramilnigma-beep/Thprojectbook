@@ -92,6 +92,7 @@ const DEMO = {
   gauge:{stitches:22,rows:30,size:10},dimensions:{width:54,length:66},safetyMargin:10,
   notes:"Скандинавский узор с оленями. Спицы 3.5 мм, снизу вверх.",
   inspoPhoto:null,resultPhoto:null,labelPhoto:null,
+  startDate:"2024-03-10",endDate:"",targetDate:"",
   yarns:[
     {id:"y1",name:"Drops Karisma",colorName:"Морская волна",color:"#1BAEC8",weight:200,length:200,category:"Ворстед"},
     {id:"y2",name:"Drops Karisma",colorName:"Тёмно-синий",color:"#3A6BC8",weight:100,length:100,category:"Ворстед"},
@@ -281,14 +282,15 @@ const CSS=`
 }
 .app.fs-sm{--fs-sm:11px;--fs-md:12px;--fs-lg:15px}
 .app.fs-lg{--fs-sm:14px;--fs-md:17px;--fs-lg:22px}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
-.app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;overflow-x:hidden;transition:background .3s}
+  html{width:100%;overflow-x:hidden}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+.app{width:100%;max-width:600px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;overflow-x:hidden;transition:background .3s}
 .bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 40% at 20% 10%,var(--mesh1) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 80% 80%,var(--mesh2) 0%,transparent 70%)}
 .topbar{position:sticky;top:0;z-index:100;height:58px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--glass-border)}
 .logo{display:flex;align-items:center;gap:8px}
 .tb-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;transition:all .2s}
 .tb-btn:active{transform:scale(.93)}
-.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;z-index:100;padding:5px 2px calc(5px + env(safe-area-inset-bottom,0));background:var(--bnav-bg);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-top:1px solid var(--glass-border);display:flex}
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;z-index:100;padding:5px 2px calc(5px + env(safe-area-inset-bottom,0));background:var(--bnav-bg);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-top:1px solid var(--glass-border);display:flex}
 .ntab{flex:1;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--muted);font-family:'Inter',sans-serif;font-size:9px;font-weight:700;padding:4px 0;transition:all .2s}
 .ntab.on{color:var(--teal)}
 .ni{font-size:18px;transition:transform .2s}
@@ -392,7 +394,7 @@ select option{background:var(--bg2)}
 .crb{font-size:16px;font-weight:800;color:var(--text)}
 .surplus{color:var(--ok)}.shortage{color:var(--danger)}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:flex-end;backdrop-filter:blur(4px)}
-.sheet{width:100%;max-width:430px;margin:0 auto;background:var(--bg2);border:1px solid var(--glass-border);border-bottom:none;border-radius:22px 22px 0 0;padding:18px 18px 32px;max-height:92vh;overflow-y:auto}
+.sheet{width:100%;max-width:600px;margin:0 auto;background:var(--bg2);border:1px solid var(--glass-border);border-bottom:none;border-radius:22px 22px 0 0;padding:18px 18px 32px;max-height:92vh;overflow-y:auto}
 .shdl{width:38px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:0 auto 16px}
 .mcard{background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:9px;cursor:pointer;transition:all .2s}
 .mcard:hover{border-color:var(--teal);background:rgba(27,174,200,0.08)}
@@ -603,7 +605,23 @@ export default function App(){
     <><StyleTag/><div className={cls}><div className="bg-mesh"/>
       <ProjectDetail project={active} view={pview} setView={setPview}
         onBack={()=>{setActive(null);setPview("overview");}}
-        onUpdate={fn=>updateProject(active.id,fn)} showToast={showToast}/>
+        onUpdate={fn=>updateProject(active.id,fn)}
+        onDelete={()=>{
+          setData(d=>({...d,projects:d.projects.filter(p=>p.id!==active.id)}));
+          setActive(null);setPview("overview");
+          showToast("✓ Проект удалён");
+        }}
+        onDuplicate={()=>{
+          const copy={...active,id:`p${Date.now()}`,name:active.name+" (копия)",
+            createdAt:new Date().toISOString().split("T")[0],
+            sections:(active.sections||[]).map(s=>({...s,id:`sec${Date.now()}${Math.random()}`,count:0})),
+            steps:(active.steps||[]).map(s=>({...s,id:`s${Date.now()}${Math.random()}`,done:false})),
+            timeline:[],inspoPhoto:null,resultPhoto:null,labelPhoto:null,
+            status:"queued",startDate:"",endDate:"",targetDate:""};
+          setData(d=>({...d,projects:[copy,...d.projects]}));
+          setActive(copy);showToast("✓ Проект скопирован");
+        }}
+        showToast={showToast}/>
       <Toast msg={toast}/>
     </div></>
   );
@@ -748,11 +766,11 @@ function ProjectCard({project,onOpen}){
 }
 
 // ── PROJECT DETAIL ────────────────────────────────────────────────────────────
-function ProjectDetail({project,view,setView,onBack,onUpdate,showToast}){
+function ProjectDetail({project,view,setView,onBack,onUpdate,onDelete,onDuplicate,showToast}){
   const tabs=[{id:"overview",label:"📋 Обзор"},{id:"counter",label:"🔢 Счётчик"},{id:"steps",label:"📖 Шаги"},{id:"calc",label:"📐 Расчёт"},{id:"timeline",label:"📸 Журнал"}];
   return(<div><TopBar onBack={onBack} title={project.name}/>
     <div className="snav">{tabs.map(t=><button key={t.id} className={`stab ${view===t.id?"on":""}`} onClick={()=>setView(t.id)}>{t.label}</button>)}</div>
-    {view==="overview"&&<OverviewTab project={project} onUpdate={onUpdate} showToast={showToast}/>}
+    {view==="overview"&&<OverviewTab project={project} onUpdate={onUpdate} onDelete={onDelete} onDuplicate={onDuplicate} showToast={showToast}/>}
     {view==="counter"&&<CounterTab project={project} onUpdate={onUpdate} showToast={showToast}/>}
     {view==="steps"&&<StepsTab project={project} onUpdate={onUpdate} showToast={showToast}/>}
     {view==="calc"&&<CalcTab project={project} onUpdate={onUpdate} showToast={showToast}/>}
@@ -760,151 +778,503 @@ function ProjectDetail({project,view,setView,onBack,onUpdate,showToast}){
   </div>);
 }
 
-// ── OVERVIEW ──────────────────────────────────────────────────────────────────
-function OverviewTab({project,onUpdate,showToast}){
+// ── OVERVIEW ─────────────────────────────────────────────────────────────────
+function OverviewTab({project,onUpdate,onDelete,onDuplicate,showToast}){
   const [editing,setEditing]=useState(false);
-  const [form,setForm]=useState({name:project.name,type:project.type,size:project.size,notes:project.notes||"",status:project.status});
-  const done=project.steps?.filter(s=>s.done).length||0,total=project.steps?.length||1,pct=Math.round(done/total*100);
-  const handlePhoto=async(field,e)=>{const file=e.target.files?.[0];if(!file)return;const b64=await toBase64(file);onUpdate(p=>({...p,[field]:b64}));showToast("✓ Фото добавлено");};
-  if(editing)return(<div className="page"><div className="sh">Редактировать</div><div className="card">
-    <div className="field"><label className="lbl">Название</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>
-    <div className="grid2">
-      <div className="field"><label className="lbl">Тип</label><select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>{PROJ_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
-      <div className="field"><label className="lbl">Размер</label><input value={form.size} onChange={e=>setForm({...form,size:e.target.value})}/></div>
-    </div>
-    <div className="field"><label className="lbl">Статус</label>
-      <select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}>
-        <option value="queued">Будущий</option><option value="in-progress">В работе</option><option value="done">Готово</option>
-      </select></div>
-    <div className="field"><label className="lbl">Заметки</label><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></div>
-    <div className="row"><button className="btn bp f1" onClick={()=>{onUpdate(p=>({...p,...form}));setEditing(false);showToast("✓ Сохранено");}}>Сохранить</button><button className="btn bl" onClick={()=>setEditing(false)}>Отмена</button></div>
-  </div></div>);
+  const [confirmDelete,setConfirmDelete]=useState(false);
+  const [form,setForm]=useState({
+    name:project.name,type:project.type,size:project.size,
+    notes:project.notes||"",status:project.status,
+    startDate:project.startDate||"",
+    targetDate:project.targetDate||"",
+  });
+  const done=project.steps?.filter(s=>s.done).length||0;
+  const total=project.steps?.length||1;
+  const pct=Math.round(done/total*100);
 
-  return(<div className="page">
-    <div className="hero-card">
-      <div className="hlbl">Проект</div><div className="hnm">{project.name}</div><div className="htp">{project.type} · {project.size}</div>
-      <div className="hero-row"><Ring pct={pct} size={68} stroke={7}/><div><div className="hero-pct">{pct}%</div><div className="hero-done">{done} из {total} шагов</div></div></div>
-      <div className="hero-bar"><div className="hero-fill" style={{width:`${pct}%`}}/></div>
-    </div>
-    <div className="row mb12" style={{justifyContent:"flex-end",gap:8}}>
-      <button className="btn bl bsm" onClick={()=>setEditing(true)}>✏️ Редактировать</button>
+  const handlePhoto=async(field,e)=>{
+    const file=e.target.files?.[0];if(!file)return;
+    const b64=await toBase64(file);
+    onUpdate(p=>({...p,[field]:b64}));
+    showToast("✓ Фото добавлено");
+  };
 
-    </div>
-    {/* Фото */}
-    <div className="card">
-      <div className="ctit mb8">📸 Фото проекта</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-        <div>
-          <div className="lbl" style={{marginBottom:6}}>Вдохновение</div>
-          <label className="photo-slot" style={{height:90,display:"flex"}}>
-            {project.inspoPhoto?<img src={project.inspoPhoto} alt=""/>:<div className="photo-slot-label"><div className="photo-slot-icon">🖼</div><div className="photo-slot-txt">Добавить</div></div>}
-            <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>handlePhoto("inspoPhoto",e)}/>
-          </label>
+  const removePhoto=(field)=>{
+    onUpdate(p=>({...p,[field]:null}));
+  };
+
+  // Дней в работе
+  const daysWorking=project.startDate
+    ? Math.max(0,Math.floor((Date.now()-new Date(project.startDate))/(1000*60*60*24)))
+    : project.createdAt
+    ? Math.max(0,Math.floor((Date.now()-new Date(project.createdAt))/(1000*60*60*24)))
+    : null;
+
+  // Дней до цели
+  const daysLeft=project.targetDate
+    ? Math.ceil((new Date(project.targetDate)-Date.now())/(1000*60*60*24))
+    : null;
+
+  const complete=()=>{
+    onUpdate(p=>({...p,status:"done",endDate:new Date().toISOString().split("T")[0]}));
+    showToast("🎉 Проект завершён!");
+    fireConfetti();
+  };
+
+  if(editing)return(
+    <div className="page">
+      <div className="sh">✏️ Редактировать</div>
+      <div className="card">
+        <div className="field"><label className="lbl">Название</label>
+          <input value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>
+        <div className="grid2">
+          <div className="field"><label className="lbl">Тип</label>
+            <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
+              {PROJ_TYPES.map(t=><option key={t}>{t}</option>)}
+            </select></div>
+          <div className="field"><label className="lbl">Размер</label>
+            <input value={form.size} onChange={e=>setForm({...form,size:e.target.value})}/></div>
         </div>
-        <div>
-          <div className="lbl" style={{marginBottom:6}}>Результат</div>
-          <label className="photo-slot" style={{height:90,display:"flex"}}>
-            {project.resultPhoto?<img src={project.resultPhoto} alt=""/>:<div className="photo-slot-label"><div className="photo-slot-icon">✨</div><div className="photo-slot-txt">Добавить</div></div>}
-            <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>handlePhoto("resultPhoto",e)}/>
-          </label>
+        <div className="field"><label className="lbl">Статус</label>
+          <select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}>
+            <option value="queued">Будущий</option>
+            <option value="in-progress">В работе</option>
+            <option value="done">Завершён</option>
+          </select></div>
+        <div className="grid2">
+          <div className="field"><label className="lbl">Дата начала</label>
+            <input type="date" value={form.startDate} onChange={e=>setForm({...form,startDate:e.target.value})}/></div>
+          <div className="field"><label className="lbl">Целевая дата</label>
+            <input type="date" value={form.targetDate} onChange={e=>setForm({...form,targetDate:e.target.value})}/></div>
         </div>
-        <div>
-          <div className="lbl" style={{marginBottom:6}}>Этикетка</div>
-          <label className="photo-slot" style={{height:90,display:"flex"}}>
-            {project.labelPhoto?<img src={project.labelPhoto} alt=""/>:<div className="photo-slot-label"><div className="photo-slot-icon">🏷</div><div className="photo-slot-txt">Добавить</div></div>}
-            <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>handlePhoto("labelPhoto",e)}/>
-          </label>
+        <div className="field"><label className="lbl">Заметки</label>
+          <textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></div>
+        <div className="row">
+          <button className="btn bp f1" onClick={()=>{
+            onUpdate(p=>({...p,...form}));setEditing(false);showToast("✓ Сохранено");
+          }}>Сохранить</button>
+          <button className="btn bl" onClick={()=>setEditing(false)}>Отмена</button>
         </div>
       </div>
     </div>
+  );
+
+  return(<div className="page">
+    {/* Hero */}
+    <div className="hero-card">
+      <div className="hlbl">Проект</div>
+      <div className="hnm">{project.name}</div>
+      <div className="htp">{project.type} · {project.size}</div>
+      <div className="hero-row">
+        <Ring pct={pct} size={68} stroke={7}/>
+        <div>
+          <div className="hero-pct">{pct}%</div>
+          <div className="hero-done">{done} из {total} шагов</div>
+          {daysWorking!==null&&<div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:3}}>📅 {daysWorking} дн. в работе</div>}
+        </div>
+      </div>
+      <div className="hero-bar"><div className="hero-fill" style={{width:`${pct}%`}}/></div>
+      {daysLeft!==null&&(
+        <div style={{marginTop:10,fontSize:12,color:daysLeft<7?"var(--warn)":"rgba(255,255,255,0.6)",fontWeight:600}}>
+          {daysLeft>0?`⏰ До цели: ${daysLeft} дн.`:daysLeft===0?"⏰ Срок сегодня!":"⚠️ Просрочено на "+Math.abs(daysLeft)+" дн."}
+        </div>
+      )}
+    </div>
+
+    {/* Кнопки действий */}
+    <div className="row mb12" style={{gap:6,flexWrap:"wrap"}}>
+      <button className="btn bl bsm" onClick={()=>setEditing(true)}>✏️ Редактировать</button>
+      {project.status!=="done"&&(
+        <button className="btn bp bsm" onClick={complete}>✅ Завершить</button>
+      )}
+      <button className="btn bl bsm" onClick={onDuplicate}>📋 Копировать</button>
+      {!confirmDelete
+        ?<button className="btn bd bsm" onClick={()=>setConfirmDelete(true)}>🗑 Удалить</button>
+        :<div className="row" style={{gap:5}}>
+          <span style={{fontSize:11,fontWeight:700,color:"var(--danger)"}}>Удалить?</span>
+          <button className="btn bd bsm" onClick={onDelete}>Да</button>
+          <button className="btn bl bsm" onClick={()=>setConfirmDelete(false)}>Нет</button>
+        </div>
+      }
+    </div>
+
+    {/* Завершён — баннер */}
+    {project.status==="done"&&(
+      <div style={{background:"linear-gradient(135deg,rgba(74,222,128,0.15),rgba(27,174,200,0.1))",border:"1px solid rgba(74,222,128,0.3)",borderRadius:14,padding:"12px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
+        <span style={{fontSize:24}}>🏆</span>
+        <div>
+          <div style={{fontWeight:800,fontSize:14,color:"var(--ok)"}}>Проект завершён!</div>
+          {project.endDate&&<div style={{fontSize:12,color:"var(--muted)"}}>{new Date(project.endDate).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"})}</div>}
+        </div>
+      </div>
+    )}
+
+    {/* Фото — 3 слота */}
+    <div className="card">
+      <div className="ctit mb8">📸 Фото проекта</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+        {[
+          {field:"inspoPhoto",icon:"🖼",label:"Вдохновение"},
+          {field:"resultPhoto",icon:"✨",label:"Результат"},
+          {field:"labelPhoto",icon:"🏷",label:"Этикетка"},
+        ].map(({field,icon,label})=>(
+          <div key={field}>
+            <div className="lbl" style={{marginBottom:5}}>{label}</div>
+            <div style={{position:"relative"}}>
+              <label className="photo-slot" style={{height:88,display:"flex"}}>
+                {project[field]
+                  ?<img src={project[field]} alt={label}/>
+                  :<div className="photo-slot-label">
+                    <div className="photo-slot-icon">{icon}</div>
+                    <div className="photo-slot-txt">Добавить</div>
+                  </div>
+                }
+                <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>handlePhoto(field,e)}/>
+              </label>
+              {project[field]&&(
+                <button onClick={()=>removePhoto(field)} style={{position:"absolute",top:4,right:4,width:20,height:20,borderRadius:"50%",background:"rgba(0,0,0,0.6)",border:"none",color:"#fff",cursor:"pointer",fontSize:10,display:"flex",alignItems:"center",justifyContent:"center",zIndex:1}}>✕</button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Параметры */}
     <div className="card">
       <div className="ctit mb8">Параметры</div>
       <div className="ir"><span className="irk">Тип</span><span className="irv">{project.type}</span></div>
       <div className="ir"><span className="irk">Размер</span><span className="irv">{project.size}</span></div>
-      <div className="ir"><span className="irk">Статус</span><span className="irv">{{queued:"Будущий","in-progress":"В работе",done:"Готово"}[project.status]}</span></div>
-      {project.notes&&<div className="ir"><span className="irk">Заметки</span><span className="irv" style={{fontSize:12}}>{project.notes}</span></div>}
+      <div className="ir"><span className="irk">Статус</span>
+        <span className="irv">{{queued:"Будущий","in-progress":"В работе",done:"Завершён"}[project.status]}</span></div>
+      {project.startDate&&<div className="ir"><span className="irk">Начало</span>
+        <span className="irv">{new Date(project.startDate).toLocaleDateString("ru-RU",{day:"numeric",month:"short",year:"numeric"})}</span></div>}
+      {project.targetDate&&<div className="ir"><span className="irk">Цель до</span>
+        <span className="irv">{new Date(project.targetDate).toLocaleDateString("ru-RU",{day:"numeric",month:"short",year:"numeric"})}</span></div>}
+      {project.endDate&&<div className="ir"><span className="irk">Завершён</span>
+        <span className="irv">{new Date(project.endDate).toLocaleDateString("ru-RU",{day:"numeric",month:"short",year:"numeric"})}</span></div>}
+      {project.notes&&<div className="ir"><span className="irk">Заметки</span>
+        <span className="irv" style={{fontSize:12}}>{project.notes}</span></div>}
     </div>
-    {project.gauge&&<div className="card"><div className="ctit mb8">Раппорт</div><div className="grid2">
-      <div className="gbox"><div className="gbn">{project.gauge.stitches}</div><div className="gbl">петель/{project.gauge.size}см</div></div>
-      <div className="gbox"><div className="gbn">{project.gauge.rows}</div><div className="gbl">рядов/{project.gauge.size}см</div></div>
-    </div></div>}
-    {project.yarns?.length>0&&<div className="card"><div className="ctit mb8">Пряжа</div>
-      {project.yarns.map(y=>(<div key={y.id} className="yrow"><div className="ysw" style={{background:y.color}}/><div><div className="yn">{y.name}</div><div className="yd">{y.colorName} · {y.weight}г/{y.length}м · {y.category}</div></div></div>))}
-    </div>}
+
+    {/* Раппорт */}
+    {project.gauge&&(
+      <div className="card">
+        <div className="ctit mb8">Раппорт</div>
+        <div className="grid2">
+          <div className="gbox"><div className="gbn">{project.gauge.stitches}</div><div className="gbl">петель/{project.gauge.size}см</div></div>
+          <div className="gbox"><div className="gbn">{project.gauge.rows}</div><div className="gbl">рядов/{project.gauge.size}см</div></div>
+        </div>
+      </div>
+    )}
+
+    {/* Пряжа в проекте */}
+    <div className="card">
+      <div className="row mb8">
+        <div className="ctit f1">Пряжа</div>
+        <button className="btn bl bsm" onClick={()=>onUpdate(p=>({...p,_addYarn:true}))}>＋ Добавить</button>
+      </div>
+      {(!project.yarns||project.yarns.length===0)
+        ?<div style={{fontSize:13,color:"var(--muted)",fontWeight:500}}>Пряжа не добавлена</div>
+        :project.yarns.map(y=>(
+          <div key={y.id} className="yrow" style={{marginBottom:6}}>
+            <div className="ysw" style={{background:y.color}}/>
+            <div className="f1"><div className="yn">{y.name}</div><div className="yd">{y.colorName} · {y.weight}г/{y.length}м</div></div>
+            <button className="btn bd bsm" style={{padding:"4px 8px"}} onClick={()=>onUpdate(p=>({...p,yarns:p.yarns.filter(yy=>yy.id!==y.id)}))}>✕</button>
+          </div>
+        ))
+      }
+      {/* Inline добавление пряжи */}
+      {project._addYarn&&<AddYarnInProject onAdd={y=>{onUpdate(p=>({...p,yarns:[...(p.yarns||[]),y],_addYarn:false}));}} onCancel={()=>onUpdate(p=>({...p,_addYarn:false}))}/>}
+    </div>
   </div>);
 }
 
-// ── COUNTER ───────────────────────────────────────────────────────────────────
+// ── Добавление пряжи прямо в проект ──────────────────────────────────────────
+function AddYarnInProject({onAdd,onCancel}){
+  const [f,setF]=useState({name:"",colorName:"",color:YARN_COLORS[0],weight:"",length:"",category:"Ворстед"});
+  const [sug,setSug]=useState([]);const [showSug,setShowSug]=useState(false);
+  const handleName=v=>{setF(p=>({...p,name:v}));if(v.length>=2){const m=YARN_DB.filter(y=>y.brand.toLowerCase().includes(v.toLowerCase()));setSug(m.slice(0,5));setShowSug(m.length>0);}else{setSug([]);setShowSug(false);}};
+  return(
+    <div style={{marginTop:10,padding:"12px",background:"var(--card2)",borderRadius:12,border:"1px solid var(--border2)"}}>
+      <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Добавить пряжу</div>
+      <div className="autocomplete-wrap field">
+        <label className="lbl">Бренд *</label>
+        <input value={f.name} onChange={e=>handleName(e.target.value)} placeholder="Drops, Alize…" onBlur={()=>setTimeout(()=>setShowSug(false),200)}/>
+        {showSug&&<div className="autocomplete-list">{sug.map((s,i)=><div key={i} className="autocomplete-item" onClick={()=>{setF(p=>({...p,name:s.brand,weight:s.weight,length:s.length,category:s.category}));setShowSug(false);}}>{s.brand}<div className="autocomplete-sub">{s.weight}г · {s.length}м</div></div>)}</div>}
+      </div>
+      <div className="grid2">
+        <div className="field"><label className="lbl">Вес (г)</label><input type="number" value={f.weight} onChange={e=>setF({...f,weight:e.target.value})} onFocus={e=>e.target.select()}/></div>
+        <div className="field"><label className="lbl">Длина (м)</label><input type="number" value={f.length} onChange={e=>setF({...f,length:e.target.value})} onFocus={e=>e.target.select()}/></div>
+      </div>
+      <div className="field"><label className="lbl">Цвет</label>
+        <input value={f.colorName} onChange={e=>setF({...f,colorName:e.target.value})} placeholder="Название цвета"/>
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
+        {YARN_COLORS.map(c=><div key={c} onClick={()=>setF({...f,color:c})} style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",border:f.color===c?"3px solid var(--text)":"2px solid rgba(255,255,255,0.1)"}}/>)}
+      </div>
+      <div className="row">
+        <button className="btn bp f1 bsm" onClick={()=>{if(!f.name)return;onAdd({...f,id:`y${Date.now()}`,weight:+f.weight||0,length:+f.length||0});}}>Добавить</button>
+        <button className="btn bl bsm" onClick={onCancel}>Отмена</button>
+      </div>
+    </div>
+  );
+}
+
+// ── COUNTER ─────────────────────────────────────────────────────────────────
 function CounterTab({project,onUpdate,showToast}){
   const sections=project.sections||[];
   const [activeSec,setActiveSec]=useState(sections[0]?.id||null);
-  const [showAdd,setShowAdd]=useState(false);const [newName,setNewName]=useState("");const [newGoal,setNewGoal]=useState("");
+  const [showAdd,setShowAdd]=useState(false);
+  const [editingSec,setEditingSec]=useState(null); // {id, name, goal}
+  const [newName,setNewName]=useState("");const [newGoal,setNewGoal]=useState("");
   const [bumping,setBumping]=useState(false);const [isMilestone,setIsMilestone]=useState(false);
   const sec=sections.find(s=>s.id===activeSec);
   const pct=sec?.goal?Math.min(100,Math.round((sec.count||0)/sec.goal*100)):null;
+
   const delta=d=>{
     haptic(d>0?8:4);const n=Math.max(0,(sec?.count||0)+d);const wm=d>0&&n>0&&n%10===0;
     onUpdate(p=>({...p,sections:p.sections.map(s=>s.id===activeSec?{...s,count:n}:s)}));
     setBumping(true);setTimeout(()=>setBumping(false),200);
     if(wm){setIsMilestone(true);setTimeout(()=>setIsMilestone(false),600);fireConfetti();showToast(`🎉 ${n} рядов!`);}
   };
-  const addSec=()=>{if(!newName.trim())return;const ns={id:`sec${Date.now()}`,name:newName.trim(),count:0,goal:+newGoal||null};onUpdate(p=>({...p,sections:[...(p.sections||[]),ns]}));setActiveSec(ns.id);setNewName("");setNewGoal("");setShowAdd(false);};
+
+  const addSec=()=>{
+    if(!newName.trim())return;
+    const ns={id:`sec${Date.now()}`,name:newName.trim(),count:0,goal:+newGoal||null};
+    onUpdate(p=>({...p,sections:[...(p.sections||[]),ns]}));
+    setActiveSec(ns.id);setNewName("");setNewGoal("");setShowAdd(false);
+  };
+
+  const saveSec=()=>{
+    if(!editingSec||!editingSec.name.trim())return;
+    onUpdate(p=>({...p,sections:p.sections.map(s=>s.id===editingSec.id?{...s,name:editingSec.name,goal:+editingSec.goal||null}:s)}));
+    setEditingSec(null);showToast("✓ Сохранено");
+  };
+
+  const deleteSec=(id)=>{
+    const remaining=(project.sections||[]).filter(s=>s.id!==id);
+    onUpdate(p=>({...p,sections:remaining}));
+    if(activeSec===id)setActiveSec(remaining[0]?.id||null);
+  };
+
+  const resetSec=(id)=>{
+    haptic(15);
+    onUpdate(p=>({...p,sections:p.sections.map(s=>s.id===id?{...s,count:0}:s)}));
+  };
+
   return(<div className="page"><div className="sh">Счётчик <span>рядов</span></div>
+
+    {/* Вкладки секций */}
     <div className="chips">
-      {sections.map(s=><span key={s.id} className={`chip ${s.id===activeSec?"on":""}`} onClick={()=>{haptic(5);setActiveSec(s.id);}}>{s.name}{s.goal?` ${s.count||0}/${s.goal}`:""}</span>)}
+      {sections.map(s=>(
+        <span key={s.id} className={`chip ${s.id===activeSec?"on":""}`}
+          onClick={()=>{haptic(5);setActiveSec(s.id);}}>
+          {s.name}{s.goal?` ${s.count||0}/${s.goal}`:""}
+        </span>
+      ))}
       <span className="chip" onClick={()=>setShowAdd(true)}>＋</span>
     </div>
-    {showAdd&&<div className="card mb12"><div className="field"><label className="lbl">Название</label><input placeholder="Перед, рукав…" value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addSec()}/></div><div className="field"><label className="lbl">Цель (рядов)</label><input type="number" placeholder="80" value={newGoal} onChange={e=>setNewGoal(e.target.value)}/></div><div className="row"><button className="btn bp f1 bsm" onClick={addSec}>Добавить</button><button className="btn bl bsm" onClick={()=>setShowAdd(false)}>Отмена</button></div></div>}
-    {sec?(<div className="card-glow"><div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"8px 0 16px"}}>
-      <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:4}}>{sec.name}</div>
-      {sec.goal&&<div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>{sec.count||0} из {sec.goal} рядов</div>}
-      {sec.goal&&<Ring pct={pct} size={92} stroke={8} color={pct>=100?GOLD:TEAL}/>}
-      <div className={`counter-num ${bumping?"bump":""} ${isMilestone?"milestone":""}`}>{sec.count||0}</div>
-      <div style={{display:"flex",alignItems:"center",gap:20}}><button className="cbtn cbtn-minus" onClick={()=>delta(-1)}>−</button><button className="cbtn cbtn-plus" onClick={()=>delta(1)}>+</button></div>
-      <div style={{display:"flex",gap:8,marginTop:14}}><button className="btn bl bsm" onClick={()=>delta(-10)}>−10</button><button className="btn bl bsm" onClick={()=>delta(10)}>+10</button><button className="btn bd bsm" onClick={()=>{haptic(15);onUpdate(p=>({...p,sections:p.sections.map(s=>s.id===activeSec?{...s,count:0}:s)}));}}>Сброс</button></div>
-    </div></div>):<div className="empty"><div className="eic">🔢</div><div className="et">Выберите часть</div></div>}
-    {sections.length>0&&<div className="card mt12"><div className="ctit mb8">Все части</div>{sections.map(s=>(<div key={s.id} className="ir"><span className="irk">{s.name}</span><div style={{display:"flex",alignItems:"center",gap:8}}>{s.goal&&<div style={{fontSize:11,color:"var(--muted)"}}>{Math.round((s.count||0)/s.goal*100)}%</div>}<span className="irv" style={{color:"var(--teal)"}}>{s.count||0}{s.goal?`/${s.goal}`:""}</span></div></div>))}</div>}
+
+    {/* Добавить секцию */}
+    {showAdd&&(
+      <div className="card mb12">
+        <div className="field"><label className="lbl">Название</label>
+          <input placeholder="Перед, рукав, кокетка…" value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addSec()}/></div>
+        <div className="field"><label className="lbl">Цель (рядов)</label>
+          <input type="number" placeholder="80" value={newGoal} onChange={e=>setNewGoal(e.target.value)} onFocus={e=>e.target.select()}/></div>
+        <div className="row"><button className="btn bp f1 bsm" onClick={addSec}>Добавить</button><button className="btn bl bsm" onClick={()=>setShowAdd(false)}>Отмена</button></div>
+      </div>
+    )}
+
+    {/* Редактировать секцию */}
+    {editingSec&&(
+      <div className="card mb12">
+        <div className="ctit mb8">✏️ Редактировать часть</div>
+        <div className="field"><label className="lbl">Название</label>
+          <input value={editingSec.name} onChange={e=>setEditingSec({...editingSec,name:e.target.value})}/></div>
+        <div className="field"><label className="lbl">Цель (рядов)</label>
+          <input type="number" value={editingSec.goal||""} onChange={e=>setEditingSec({...editingSec,goal:e.target.value})} placeholder="Без цели" onFocus={e=>e.target.select()}/></div>
+        <div className="row"><button className="btn bp f1 bsm" onClick={saveSec}>Сохранить</button><button className="btn bl bsm" onClick={()=>setEditingSec(null)}>Отмена</button></div>
+      </div>
+    )}
+
+    {/* Основной счётчик */}
+    {sec?(<div className="card-glow">
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"8px 0 16px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".08em"}}>{sec.name}</div>
+          <button onClick={()=>setEditingSec({id:sec.id,name:sec.name,goal:sec.goal||""})}
+            style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:13}}>✏️</button>
+          {sections.length>1&&(
+            <button onClick={()=>deleteSec(sec.id)}
+              style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",fontSize:13}}>🗑</button>
+          )}
+        </div>
+        {sec.goal&&<div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>{sec.count||0} из {sec.goal} рядов</div>}
+        {sec.goal&&<Ring pct={pct} size={92} stroke={8} color={pct>=100?GOLD:TEAL}/>}
+        <div className={`counter-num ${bumping?"bump":""} ${isMilestone?"milestone":""}`}>{sec.count||0}</div>
+        <div style={{display:"flex",alignItems:"center",gap:20}}>
+          <button className="cbtn cbtn-minus" onClick={()=>delta(-1)}>−</button>
+          <button className="cbtn cbtn-plus" onClick={()=>delta(1)}>+</button>
+        </div>
+        <div style={{display:"flex",gap:8,marginTop:14}}>
+          <button className="btn bl bsm" onClick={()=>delta(-10)}>−10</button>
+          <button className="btn bl bsm" onClick={()=>delta(10)}>+10</button>
+          <button className="btn bd bsm" onClick={()=>resetSec(sec.id)}>Сброс</button>
+        </div>
+      </div>
+    </div>):<div className="empty"><div className="eic">🔢</div><div className="et">Нет частей</div><div className="ed">Нажмите ＋ чтобы добавить часть изделия</div></div>}
+
+    {/* Сводная таблица */}
+    {sections.length>0&&(
+      <div className="card mt12">
+        <div className="ctit mb8">Все части</div>
+        {sections.map(s=>(
+          <div key={s.id} className="ir">
+            <span className="irk">{s.name}</span>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {s.goal&&<div style={{fontSize:11,color:"var(--muted)"}}>{Math.round((s.count||0)/(s.goal)*100)}%</div>}
+              <span className="irv" style={{color:"var(--teal)"}}>{s.count||0}{s.goal?`/${s.goal}`:""}</span>
+            </div>
+          </div>
+        ))}
+        <div className="ir" style={{borderBottom:"none"}}>
+          <span className="irk">Итого рядов</span>
+          <span className="irv" style={{color:"var(--teal)",fontFamily:"'Syne',sans-serif",fontWeight:800}}>
+            {sections.reduce((a,s)=>a+(s.count||0),0)}
+          </span>
+        </div>
+      </div>
+    )}
   </div>);
 }
 
-// ── STEPS (с свайпом) ─────────────────────────────────────────────────────────
+// ── STEPS (свайп + редактирование + заметки) ────────────────────────────────
 function StepsTab({project,onUpdate,showToast}){
-  const steps=project.steps||[];const [showAdd,setShowAdd]=useState(false);const [newStep,setNewStep]=useState("");
+  const steps=project.steps||[];
+  const [showAdd,setShowAdd]=useState(false);
+  const [newStep,setNewStep]=useState("");
+  const [newStepNote,setNewStepNote]=useState("");
+  const [editingStep,setEditingStep]=useState(null); // {id, text, note}
   const firstUndone=steps.findIndex(s=>!s.done);
-  const toggle=id=>{haptic(10);onUpdate(p=>({...p,steps:p.steps.map(s=>s.id===id?{...s,done:!s.done}:s)}));};
-  const addStep=()=>{if(!newStep.trim())return;onUpdate(p=>({...p,steps:[...(p.steps||[]),{id:`s${Date.now()}`,text:newStep.trim(),done:false}]}));setNewStep("");setShowAdd(false);showToast("✓ Шаг добавлен");};
-  const done=steps.filter(s=>s.done).length,pct=steps.length?Math.round(done/steps.length*100):0;
+
+  const toggle=id=>{
+    haptic(10);
+    onUpdate(p=>({...p,steps:p.steps.map(s=>s.id===id?{...s,done:!s.done}:s)}));
+  };
+
+  const addStep=()=>{
+    if(!newStep.trim())return;
+    onUpdate(p=>({...p,steps:[...(p.steps||[]),{id:`s${Date.now()}`,text:newStep.trim(),note:newStepNote.trim(),done:false}]}));
+    setNewStep("");setNewStepNote("");setShowAdd(false);
+    showToast("✓ Шаг добавлен");
+  };
+
+  const saveStep=()=>{
+    if(!editingStep)return;
+    onUpdate(p=>({...p,steps:p.steps.map(s=>s.id===editingStep.id?{...s,text:editingStep.text,note:editingStep.note}:s)}));
+    setEditingStep(null);showToast("✓ Сохранено");
+  };
+
+  const deleteStep=id=>{
+    onUpdate(p=>({...p,steps:p.steps.filter(s=>s.id!==id)}));
+  };
+
+  const done=steps.filter(s=>s.done).length;
+  const pct=steps.length?Math.round(done/steps.length*100):0;
+
   return(<div className="page"><div className="sh">Инструкция <span>по шагам</span></div>
-    {steps.length>0&&<div className="card mb12">
-      <div className="row" style={{justifyContent:"space-between",fontSize:12,fontWeight:700,marginBottom:6}}><span className="mu">Прогресс</span><span style={{color:"var(--teal)"}}>{done}/{steps.length} · {pct}%</span></div>
-      <div className="ptr"><div className="pfi" style={{width:`${pct}%`}}/></div>
-      <div style={{fontSize:10,fontWeight:600,color:"var(--muted)",textAlign:"right",marginTop:3}}>← свайп вправо = выполнено</div>
-    </div>}
-    {showAdd&&<div className="card mb12"><textarea placeholder="Опишите шаг…" value={newStep} onChange={e=>setNewStep(e.target.value)} style={{marginBottom:8,minHeight:60}}/><div className="row"><button className="btn bp f1 bsm" onClick={addStep}>Добавить</button><button className="btn bl bsm" onClick={()=>setShowAdd(false)}>Отмена</button></div></div>}
+
+    {/* Прогресс */}
+    {steps.length>0&&(
+      <div className="card mb12">
+        <div className="row" style={{justifyContent:"space-between",fontSize:12,fontWeight:700,marginBottom:6}}>
+          <span className="mu">Прогресс</span>
+          <span style={{color:"var(--teal)"}}>{done}/{steps.length} · {pct}%</span>
+        </div>
+        <div className="ptr"><div className="pfi" style={{width:`${pct}%`}}/></div>
+        <div style={{fontSize:10,fontWeight:600,color:"var(--muted)",textAlign:"right",marginTop:3}}>← свайп вправо = выполнено</div>
+      </div>
+    )}
+
+    {/* Редактировать шаг */}
+    {editingStep&&(
+      <div className="card mb12">
+        <div className="ctit mb8">✏️ Редактировать шаг</div>
+        <div className="field"><label className="lbl">Текст шага</label>
+          <textarea value={editingStep.text} onChange={e=>setEditingStep({...editingStep,text:e.target.value})} style={{minHeight:60}}/></div>
+        <div className="field"><label className="lbl">Заметка (необязательно)</label>
+          <input value={editingStep.note||""} onChange={e=>setEditingStep({...editingStep,note:e.target.value})} placeholder="Здесь я делала иначе…"/></div>
+        <div className="row">
+          <button className="btn bp f1 bsm" onClick={saveStep}>Сохранить</button>
+          <button className="btn bl bsm" onClick={()=>setEditingStep(null)}>Отмена</button>
+        </div>
+      </div>
+    )}
+
+    {/* Добавить шаг */}
+    {showAdd&&(
+      <div className="card mb12">
+        <div className="field"><label className="lbl">Описание шага *</label>
+          <textarea placeholder="Опишите шаг…" value={newStep} onChange={e=>setNewStep(e.target.value)} style={{minHeight:60}}/></div>
+        <div className="field"><label className="lbl">Заметка (необязательно)</label>
+          <input placeholder="Дополнительное примечание…" value={newStepNote} onChange={e=>setNewStepNote(e.target.value)}/></div>
+        <div className="row">
+          <button className="btn bp f1 bsm" onClick={addStep}>Добавить</button>
+          <button className="btn bl bsm" onClick={()=>{setShowAdd(false);setNewStep("");setNewStepNote("");}}>Отмена</button>
+        </div>
+      </div>
+    )}
+
     <div className="card">
-      {steps.length===0&&<div style={{textAlign:"center",padding:"16px 0",color:"var(--muted)",fontSize:13}}>Шагов нет.</div>}
-      {steps.map((s,i)=><SwipeStep key={s.id} step={s} index={i} isActive={i===firstUndone} onToggle={()=>toggle(s.id)}/>)}
+      {steps.length===0&&(
+        <div style={{textAlign:"center",padding:"16px 0",color:"var(--muted)",fontSize:13}}>
+          Шагов нет — добавьте первый.
+        </div>
+      )}
+      {steps.map((s,i)=>(
+        <SwipeStep key={s.id} step={s} index={i} isActive={i===firstUndone}
+          onToggle={()=>toggle(s.id)}
+          onEdit={()=>setEditingStep({id:s.id,text:s.text,note:s.note||""})}
+          onDelete={()=>deleteStep(s.id)}/>
+      ))}
     </div>
     <button className="btn bg bfull mt8" onClick={()=>setShowAdd(true)}>＋ Добавить шаг</button>
   </div>);
 }
 
-function SwipeStep({step,index,isActive,onToggle}){
+function SwipeStep({step,index,isActive,onToggle,onEdit,onDelete}){
   const ref=useRef(null);const startX=useRef(0);const [dx,setDx]=useState(0);
+  const [showActions,setShowActions]=useState(false);
   const onTouchStart=e=>{startX.current=e.touches[0].clientX;};
   const onTouchMove=e=>{const d=e.touches[0].clientX-startX.current;if(d>0)setDx(Math.min(d,100));};
   const onTouchEnd=()=>{if(dx>70){haptic(12);setTimeout(()=>{onToggle();setDx(0);},120);}else setDx(0);};
   const swipePct=Math.min(dx/80,1);
-  return(<div ref={ref} className={`srow ${step.done?"done":isActive?"act":""}`}
-    style={{transform:`translateX(${dx}px)`,transition:dx===0?"transform .2s":"none",background:dx>20?`rgba(74,222,128,${swipePct*0.15})`:"",borderRadius:dx>20?12:0}}
-    onClick={dx===0?onToggle:undefined}
-    onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-    <div className="snum">{step.done?"✓":index+1}</div>
-    <div className="stxt f1">{step.text}</div>
-    {dx>30&&<div className="swipe-hint" style={{opacity:swipePct}}>✓</div>}
-  </div>);
+  return(
+    <div style={{borderBottom:"1px solid var(--border)"}}>
+      <div ref={ref} className={`srow ${step.done?"done":isActive?"act":""}`}
+        style={{transform:`translateX(${dx}px)`,transition:dx===0?"transform .2s":"none",
+          background:dx>20?`rgba(74,222,128,${swipePct*0.15})`:"",borderBottom:"none"}}
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+        <div className="snum" onClick={onToggle}>{step.done?"✓":index+1}</div>
+        <div className="f1" onClick={onToggle}>
+          <div className="stxt">{step.text}</div>
+          {step.note&&<div style={{fontSize:11,color:"var(--muted)",marginTop:3,fontStyle:"italic"}}>{step.note}</div>}
+        </div>
+        {dx>30&&<div className="swipe-hint" style={{opacity:swipePct}}>✓</div>}
+        <button onClick={()=>setShowActions(s=>!s)}
+          style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:16,padding:"0 4px",flexShrink:0}}>⋯</button>
+      </div>
+      {showActions&&(
+        <div style={{display:"flex",gap:6,padding:"6px 14px 8px",justifyContent:"flex-end"}}>
+          <button className="btn bl bsm" onClick={()=>{onEdit();setShowActions(false);}}>✏️ Изменить</button>
+          <button className="btn bd bsm" onClick={()=>{onDelete();setShowActions(false);}}>🗑 Удалить</button>
+        </div>
+      )}
+    </div>
+  );
 }
-
 
 // ── CALC (два режима: размер изделия + замена пряжи) ─────────────────────────
 // ── CalcTab (внутри проекта) ─────────────────────────────────────────────────
@@ -946,28 +1316,28 @@ function CalcTab({project,onUpdate,showToast}){
       <div className="card"><div className="ctit mb8">Образец</div>
         {calcMode==="weight"?(<>
           <div className="grid2">
-            <div className="field"><label className="lbl">Ширина (см)</label><input type="number" value={sampleW} onChange={e=>setSampleW(+e.target.value)}/></div>
-            <div className="field"><label className="lbl">Высота (см)</label><input type="number" value={sampleH} onChange={e=>setSampleH(+e.target.value)}/></div>
+            <div className="field"><label className="lbl">Ширина (см)</label><input type="number" value={sampleW} onChange={e=>setSampleW(+e.target.value)} onFocus={e=>e.target.select()}/></div>
+            <div className="field"><label className="lbl">Высота (см)</label><input type="number" value={sampleH} onChange={e=>setSampleH(+e.target.value)} onFocus={e=>e.target.select()}/></div>
           </div>
-          <div className="field"><label className="lbl">Вес образца (г) ⚖️</label><input type="number" value={sampleG} onChange={e=>setSampleG(e.target.value)} placeholder="Взвесьте образец на весах"/></div>
+          <div className="field"><label className="lbl">Вес образца (г) ⚖️</label><input type="number" value={sampleG} onChange={e=>setSampleG(e.target.value)} placeholder="Взвесьте образец на весах" onFocus={e=>e.target.select()}/></div>
         </>):(<>
           <div className="grid2">
-            <div className="field"><label className="lbl">Петли</label><input type="number" value={gauge.stitches} onChange={e=>setGauge({...gauge,stitches:+e.target.value})}/></div>
-            <div className="field"><label className="lbl">Ряды</label><input type="number" value={gauge.rows} onChange={e=>setGauge({...gauge,rows:+e.target.value})}/></div>
+            <div className="field"><label className="lbl">Петли</label><input type="number" value={gauge.stitches} onChange={e=>setGauge({...gauge,stitches:+e.target.value})} onFocus={e=>e.target.select()}/></div>
+            <div className="field"><label className="lbl">Ряды</label><input type="number" value={gauge.rows} onChange={e=>setGauge({...gauge,rows:+e.target.value})} onFocus={e=>e.target.select()}/></div>
           </div>
-          <div className="field"><label className="lbl">Размер образца (см)</label><input type="number" value={gauge.size} onChange={e=>setGauge({...gauge,size:+e.target.value})}/></div>
+          <div className="field"><label className="lbl">Размер образца (см)</label><input type="number" value={gauge.size} onChange={e=>setGauge({...gauge,size:+e.target.value})} onFocus={e=>e.target.select()}/></div>
         </>)}
       </div>
       <div className="card"><div className="ctit mb8">Размеры изделия (см)</div>
         <div className="grid2">
-          <div className="field"><label className="lbl">Ширина</label><input type="number" value={dim.width} onChange={e=>setDim({...dim,width:+e.target.value})}/></div>
-          <div className="field"><label className="lbl">Длина</label><input type="number" value={dim.length} onChange={e=>setDim({...dim,length:+e.target.value})}/></div>
+          <div className="field"><label className="lbl">Ширина</label><input type="number" value={dim.width} onChange={e=>setDim({...dim,width:+e.target.value})} onFocus={e=>e.target.select()}/></div>
+          <div className="field"><label className="lbl">Длина</label><input type="number" value={dim.length} onChange={e=>setDim({...dim,length:+e.target.value})} onFocus={e=>e.target.select()}/></div>
         </div>
       </div>
       <div className="card"><div className="ctit mb8">Параметры пряжи</div>
         <div className="grid2">
-          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={metersPerHundred} onChange={e=>setMetersPerHundred(+e.target.value)}/></div>
-          <div className="field"><label className="lbl">Запас %</label><input type="number" value={margin} onChange={e=>setMargin(+e.target.value)}/></div>
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={metersPerHundred} onChange={e=>setMetersPerHundred(+e.target.value)} onFocus={e=>e.target.select()}/></div>
+          <div className="field"><label className="lbl">Запас %</label><input type="number" value={margin} onChange={e=>setMargin(+e.target.value)} onFocus={e=>e.target.select()}/></div>
         </div>
         {calcMode==="density"&&<>
           <div className="field"><label className="lbl">Тип пряжи</label>
@@ -994,14 +1364,14 @@ function CalcTab({project,onUpdate,showToast}){
       <div style={{fontSize:13,color:"var(--muted)",fontWeight:500,marginBottom:12,lineHeight:1.5}}>Пересчёт при замене пряжи на другую с другим метражом на 100г.</div>
       <div className="card"><div className="ctit mb8">Пряжа по схеме (нужна)</div>
         <div className="grid2">
-          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={needM} onChange={e=>setNeedM(+e.target.value)} placeholder="200"/></div>
-          <div className="field"><label className="lbl">Нужно граммов</label><input type="number" value={needGInput} onChange={e=>setNeedGInput(+e.target.value)} placeholder="300"/></div>
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={needM} onChange={e=>setNeedM(+e.target.value)} placeholder="200" onFocus={e=>e.target.select()}/></div>
+          <div className="field"><label className="lbl">Нужно граммов</label><input type="number" value={needGInput} onChange={e=>setNeedGInput(+e.target.value)} placeholder="300" onFocus={e=>e.target.select()}/></div>
         </div>
       </div>
       <div className="card"><div className="ctit mb8">Ваша пряжа (есть)</div>
         <div className="grid2">
-          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={haveM} onChange={e=>setHaveM(+e.target.value)} placeholder="150"/></div>
-          <div className="field"><label className="lbl">Есть граммов</label><input type="number" value={haveGInput} onChange={e=>setHaveGInput(+e.target.value)} placeholder="200"/></div>
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={haveM} onChange={e=>setHaveM(+e.target.value)} placeholder="150" onFocus={e=>e.target.select()}/></div>
+          <div className="field"><label className="lbl">Есть граммов</label><input type="number" value={haveGInput} onChange={e=>setHaveGInput(+e.target.value)} placeholder="200" onFocus={e=>e.target.select()}/></div>
         </div>
       </div>
       <div className="cr">
@@ -1058,28 +1428,28 @@ function StandaloneCalc({setData}){
       <div className="card"><div className="ctit mb8">Образец</div>
         {calcMode==="weight"?(<>
           <div className="grid2">
-            <div className="field"><label className="lbl">Ширина (см)</label><input type="number" value={sampleW} onChange={e=>setSampleW(+e.target.value)}/></div>
-            <div className="field"><label className="lbl">Высота (см)</label><input type="number" value={sampleH} onChange={e=>setSampleH(+e.target.value)}/></div>
+            <div className="field"><label className="lbl">Ширина (см)</label><input type="number" value={sampleW} onChange={e=>setSampleW(+e.target.value)} onFocus={e=>e.target.select()}/></div>
+            <div className="field"><label className="lbl">Высота (см)</label><input type="number" value={sampleH} onChange={e=>setSampleH(+e.target.value)} onFocus={e=>e.target.select()}/></div>
           </div>
-          <div className="field"><label className="lbl">Вес образца (г) ⚖️</label><input type="number" value={sampleG} onChange={e=>setSampleG(e.target.value)} placeholder="Взвесьте образец"/></div>
+          <div className="field"><label className="lbl">Вес образца (г) ⚖️</label><input type="number" value={sampleG} onChange={e=>setSampleG(e.target.value)} placeholder="Взвесьте образец" onFocus={e=>e.target.select()}/></div>
         </>):(<>
           <div className="grid2">
-            <div className="field"><label className="lbl">Петли</label><input type="number" value={g.stitches} onChange={e=>setG({...g,stitches:+e.target.value})}/></div>
-            <div className="field"><label className="lbl">Ряды</label><input type="number" value={g.rows} onChange={e=>setG({...g,rows:+e.target.value})}/></div>
+            <div className="field"><label className="lbl">Петли</label><input type="number" value={g.stitches} onChange={e=>setG({...g,stitches:+e.target.value})} onFocus={e=>e.target.select()}/></div>
+            <div className="field"><label className="lbl">Ряды</label><input type="number" value={g.rows} onChange={e=>setG({...g,rows:+e.target.value})} onFocus={e=>e.target.select()}/></div>
           </div>
-          <div className="field"><label className="lbl">Образец (см)</label><input type="number" value={g.size} onChange={e=>setG({...g,size:+e.target.value})}/></div>
+          <div className="field"><label className="lbl">Образец (см)</label><input type="number" value={g.size} onChange={e=>setG({...g,size:+e.target.value})} onFocus={e=>e.target.select()}/></div>
         </>)}
       </div>
       <div className="card"><div className="ctit mb8">Размеры (см)</div>
         <div className="grid2">
-          <div className="field"><label className="lbl">Ширина</label><input type="number" value={dim.width} onChange={e=>setDim({...dim,width:+e.target.value})}/></div>
-          <div className="field"><label className="lbl">Длина</label><input type="number" value={dim.length} onChange={e=>setDim({...dim,length:+e.target.value})}/></div>
+          <div className="field"><label className="lbl">Ширина</label><input type="number" value={dim.width} onChange={e=>setDim({...dim,width:+e.target.value})} onFocus={e=>e.target.select()}/></div>
+          <div className="field"><label className="lbl">Длина</label><input type="number" value={dim.length} onChange={e=>setDim({...dim,length:+e.target.value})} onFocus={e=>e.target.select()}/></div>
         </div>
       </div>
       <div className="card">
         <div className="grid2">
-          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={metersPerHundred} onChange={e=>setMetersPerHundred(+e.target.value)}/></div>
-          <div className="field"><label className="lbl">Запас %</label><input type="number" value={margin} onChange={e=>setMargin(+e.target.value)}/></div>
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={metersPerHundred} onChange={e=>setMetersPerHundred(+e.target.value)} onFocus={e=>e.target.select()}/></div>
+          <div className="field"><label className="lbl">Запас %</label><input type="number" value={margin} onChange={e=>setMargin(+e.target.value)} onFocus={e=>e.target.select()}/></div>
         </div>
         {calcMode==="density"&&<>
           <div className="field"><label className="lbl">Тип пряжи</label>
@@ -1089,7 +1459,7 @@ function StandaloneCalc({setData}){
             <select value={patternFactor} onChange={e=>setPatternFactor(+e.target.value)}>{PATTERN_FACTORS.map(p=><option key={p.label} value={p.value}>{p.label}</option>)}</select>
           </div>
         </>}
-        <div className="field"><label className="lbl">Есть в наличии (м)</label><input type="number" value={avail} onChange={e=>setAvail(e.target.value)} placeholder="0"/></div>
+        <div className="field"><label className="lbl">Есть в наличии (м)</label><input type="number" value={avail} onChange={e=>setAvail(e.target.value)} placeholder="0" onFocus={e=>e.target.select()}/></div>
       </div>
       <div className="cr">
         <div className="crr"><span>Нужно метров</span><span className="crv">{result.meters} м</span></div>
@@ -1103,14 +1473,14 @@ function StandaloneCalc({setData}){
       <div style={{fontSize:13,color:"var(--muted)",fontWeight:500,marginBottom:12,lineHeight:1.5}}>Пересчёт при замене пряжи с другим метражом на 100г.</div>
       <div className="card"><div className="ctit mb8">Пряжа по схеме (нужна)</div>
         <div className="grid2">
-          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={needM} onChange={e=>setNeedM(+e.target.value)} placeholder="200"/></div>
-          <div className="field"><label className="lbl">Нужно г</label><input type="number" value={needGInput} onChange={e=>setNeedGInput(+e.target.value)} placeholder="300"/></div>
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={needM} onChange={e=>setNeedM(+e.target.value)} placeholder="200" onFocus={e=>e.target.select()}/></div>
+          <div className="field"><label className="lbl">Нужно г</label><input type="number" value={needGInput} onChange={e=>setNeedGInput(+e.target.value)} placeholder="300" onFocus={e=>e.target.select()}/></div>
         </div>
       </div>
       <div className="card"><div className="ctit mb8">Ваша пряжа (есть)</div>
         <div className="grid2">
-          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={haveM} onChange={e=>setHaveM(+e.target.value)} placeholder="150"/></div>
-          <div className="field"><label className="lbl">Есть г</label><input type="number" value={haveGInput} onChange={e=>setHaveGInput(+e.target.value)} placeholder="200"/></div>
+          <div className="field"><label className="lbl">м / 100г</label><input type="number" value={haveM} onChange={e=>setHaveM(+e.target.value)} placeholder="150" onFocus={e=>e.target.select()}/></div>
+          <div className="field"><label className="lbl">Есть г</label><input type="number" value={haveGInput} onChange={e=>setHaveGInput(+e.target.value)} placeholder="200" onFocus={e=>e.target.select()}/></div>
         </div>
       </div>
       <div className="cr">
@@ -1207,14 +1577,20 @@ function SettingsPage({data,user,onUpdate,onClear,onLogout}){
 function TimelineTab({project,onUpdate,showToast}){
   const [note,setNote]=useState("");
   const [show,setShow]=useState(false);
+  const [editingEntry,setEditingEntry]=useState(null); // {id, note}
   const tl=project.timeline||[];
 
   const add=()=>{
     if(!note.trim())return;
     const date=new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"short"});
     onUpdate(p=>({...p,timeline:[...(p.timeline||[]),{id:`t${Date.now()}`,date,note:note.trim()}]}));
-    setNote("");setShow(false);
-    showToast("✓ Запись добавлена");
+    setNote("");setShow(false);showToast("✓ Запись добавлена");
+  };
+
+  const saveEdit=()=>{
+    if(!editingEntry)return;
+    onUpdate(p=>({...p,timeline:p.timeline.map(e=>e.id===editingEntry.id?{...e,note:editingEntry.note}:e)}));
+    setEditingEntry(null);showToast("✓ Запись обновлена");
   };
 
   const remove=id=>{
@@ -1225,24 +1601,35 @@ function TimelineTab({project,onUpdate,showToast}){
     <div className="page">
       <div className="sh">Журнал <span>прогресса</span></div>
       <button className="btn bp bfull mb12" onClick={()=>setShow(true)}>📝 Добавить запись</button>
+
       {show&&(
         <div className="card mb12">
-          <textarea
-            placeholder="Что сделали сегодня? Сколько рядов, какие сложности…"
-            value={note} onChange={e=>setNote(e.target.value)}
-            style={{marginBottom:8,minHeight:80}}
-          />
+          <textarea placeholder="Что сделали сегодня? Сколько рядов, какие сложности…"
+            value={note} onChange={e=>setNote(e.target.value)} style={{marginBottom:8,minHeight:80}}/>
           <div className="row">
             <button className="btn bp f1 bsm" onClick={add}>Добавить</button>
             <button className="btn bl bsm" onClick={()=>{setShow(false);setNote("");}}>Отмена</button>
           </div>
         </div>
       )}
+
+      {editingEntry&&(
+        <div className="card mb12">
+          <div className="ctit mb8">✏️ Редактировать запись</div>
+          <textarea value={editingEntry.note} onChange={e=>setEditingEntry({...editingEntry,note:e.target.value})}
+            style={{marginBottom:8,minHeight:70}}/>
+          <div className="row">
+            <button className="btn bp f1 bsm" onClick={saveEdit}>Сохранить</button>
+            <button className="btn bl bsm" onClick={()=>setEditingEntry(null)}>Отмена</button>
+          </div>
+        </div>
+      )}
+
       {tl.length===0
         ?<div className="empty">
             <div className="eic">📸</div>
             <div className="et">Журнал пустой</div>
-            <div className="ed">Добавляйте записи после каждой сессии вязания — это поможет отслеживать прогресс.</div>
+            <div className="ed">Добавляйте записи после каждой сессии — это поможет отслеживать прогресс и вспомнить детали.</div>
           </div>
         :<div className="tlw">
             {[...tl].reverse().map(e=>(
@@ -1254,7 +1641,12 @@ function TimelineTab({project,onUpdate,showToast}){
                   <div className="tldate">{e.date}</div>
                   <div className="tlnote">{e.note}</div>
                 </div>
-                <button onClick={()=>remove(e.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:14,flexShrink:0,paddingLeft:8}}>✕</button>
+                <div style={{display:"flex",gap:4,flexShrink:0,paddingLeft:6}}>
+                  <button onClick={()=>setEditingEntry({id:e.id,note:e.note})}
+                    style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:13}}>✏️</button>
+                  <button onClick={()=>remove(e.id)}
+                    style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:13}}>✕</button>
+                </div>
               </div>
             ))}
           </div>
@@ -1314,8 +1706,8 @@ function AddYarnForm({onAdd,onCancel}){
     <div className="field"><label className="lbl">Цвет / название</label><input value={f.colorName} onChange={e=>setF({...f,colorName:e.target.value})} placeholder="Морская волна"/></div>
     <div className="field"><label className="lbl">Цвет</label><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>{YARN_COLORS.map(c=><div key={c} onClick={()=>setF({...f,color:c})} style={{width:26,height:26,borderRadius:"50%",background:c,cursor:"pointer",border:f.color===c?"3px solid var(--text)":"2px solid rgba(255,255,255,0.1)",transition:"all .15s"}}/>)}</div></div>
     <div className="grid2">
-      <div className="field"><label className="lbl">Вес (г) *</label><input type="number" value={f.weight} onChange={e=>setF({...f,weight:e.target.value})} placeholder="100"/></div>
-      <div className="field"><label className="lbl">Длина (м)</label><input type="number" value={f.length} onChange={e=>setF({...f,length:e.target.value})} placeholder="200"/></div>
+      <div className="field"><label className="lbl">Вес (г) *</label><input type="number" value={f.weight} onChange={e=>setF({...f,weight:e.target.value})} placeholder="100" onFocus={e=>e.target.select()}/></div>
+      <div className="field"><label className="lbl">Длина (м)</label><input type="number" value={f.length} onChange={e=>setF({...f,length:e.target.value})} placeholder="200" onFocus={e=>e.target.select()}/></div>
     </div>
     <div className="field"><label className="lbl">Категория</label><select value={f.category} onChange={e=>setF({...f,category:e.target.value})}>{YARN_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
     <div className="row mt8"><button className="btn bp f1" onClick={()=>{if(!f.name||!f.weight)return;onAdd({...f,id:`y${Date.now()}`,weight:+f.weight,length:+f.length||0});}}>Добавить</button><button className="btn bl" onClick={onCancel}>Отмена</button></div>
@@ -1353,12 +1745,12 @@ function AddToolForm({onAdd,onCancel}){
     <div style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:800,marginBottom:14}}>Добавить инструмент</div>
     <div className="field"><label className="lbl">Тип *</label><select value={f.type} onChange={e=>setF({...f,type:e.target.value})}>{TOOL_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
     <div className="grid2">
-      <div className="field"><label className="lbl">Размер (мм)</label><input type="number" step="0.5" value={f.size} onChange={e=>setF({...f,size:e.target.value})} placeholder="3.5"/></div>
-      <div className="field"><label className="lbl">Длина (см)</label><input type="number" value={f.length} onChange={e=>setF({...f,length:e.target.value})} placeholder="40"/></div>
+      <div className="field"><label className="lbl">Размер (мм)</label><input type="number" step="0.5" value={f.size} onChange={e=>setF({...f,size:e.target.value})} placeholder="3.5" onFocus={e=>e.target.select()}/></div>
+      <div className="field"><label className="lbl">Длина (см)</label><input type="number" value={f.length} onChange={e=>setF({...f,length:e.target.value})} placeholder="40" onFocus={e=>e.target.select()}/></div>
     </div>
     <div className="grid2">
       <div className="field"><label className="lbl">Материал</label><select value={f.material} onChange={e=>setF({...f,material:e.target.value})}>{TOOL_MATERIALS.map(m=><option key={m}>{m}</option>)}</select></div>
-      <div className="field"><label className="lbl">Количество</label><input type="number" value={f.qty} onChange={e=>setF({...f,qty:e.target.value})} placeholder="1"/></div>
+      <div className="field"><label className="lbl">Количество</label><input type="number" value={f.qty} onChange={e=>setF({...f,qty:e.target.value})} placeholder="1" onFocus={e=>e.target.select()}/></div>
     </div>
     <div className="field"><label className="lbl">Заметка</label><input value={f.notes} onChange={e=>setF({...f,notes:e.target.value})} placeholder="Набор, подарок…"/></div>
     <div className="row mt8"><button className="btn bp f1" onClick={()=>{if(!f.type)return;onAdd({...f,id:`t${Date.now()}`,size:+f.size||"",length:+f.length||"",qty:+f.qty||1});}}>Добавить</button><button className="btn bl" onClick={onCancel}>Отмена</button></div>
@@ -1394,7 +1786,7 @@ function StandaloneCounter(){
     </div>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
       <span style={{fontSize:12,color:"var(--muted)",fontWeight:500}}>Цель:</span>
-      <input className="sc-goal-input" type="number" placeholder="—" value={cur?.goal||""} onChange={e=>updateCur(c=>({...c,goal:e.target.value}))}/>
+      <input className="sc-goal-input" type="number" placeholder="—" value={cur?.goal||""} onChange={e=>updateCur(c=>({...c,goal:e.target.value}))} onFocus={e=>e.target.select()}/>
       <span style={{fontSize:12,color:"var(--muted)",fontWeight:500}}>рядов</span>
     </div>
     {cur?.goal&&pct!==null&&<div style={{marginBottom:4}}><Ring pct={pct} size={106} stroke={9} color={pct>=100?GOLD:TEAL}/></div>}
@@ -1423,7 +1815,9 @@ function NewProjectSheet({onClose,onCreate}){
   const [form,setForm]=useState({name:"",type:"Свитер",size:"M",notes:"",gauge:{stitches:20,rows:28,size:10},dimensions:{width:50,length:60},status:"queued"});
   const build=f=>({id:`p${Date.now()}`,...f,yarns:[],steps:[],
     sections:[{id:`sa${Date.now()}`,name:"Перед",count:0,goal:null},{id:`sb${Date.now()}`,name:"Спинка",count:0,goal:null}],
-    timeline:[],safetyMargin:10,inspoPhoto:null,resultPhoto:null,labelPhoto:null,createdAt:new Date().toISOString().split("T")[0]});
+    timeline:[],safetyMargin:10,inspoPhoto:null,resultPhoto:null,labelPhoto:null,
+    startDate:new Date().toISOString().split("T")[0],endDate:"",targetDate:"",
+    createdAt:new Date().toISOString().split("T")[0]});
   return(<Overlay onClose={onClose}>
     {!mode&&<>
       <div style={{fontFamily:"'Syne',sans-serif",fontSize:19,fontWeight:800,marginBottom:14}}>Новый проект</div>
@@ -1473,14 +1867,14 @@ function ManualForm({form,setForm,onCreate,onBack}){
       </select></div>
     <div style={{fontSize:10,fontWeight:800,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".07em",marginBottom:7}}>Раппорт</div>
     <div className="grid2">
-      <div className="field"><label className="lbl">Петли</label><input type="number" value={g.stitches} onChange={e=>setForm({...form,gauge:{...g,stitches:+e.target.value}})}/></div>
-      <div className="field"><label className="lbl">Ряды</label><input type="number" value={g.rows} onChange={e=>setForm({...form,gauge:{...g,rows:+e.target.value}})}/></div>
+      <div className="field"><label className="lbl">Петли</label><input type="number" value={g.stitches} onChange={e=>setForm({...form,gauge:{...g,stitches:+e.target.value}})} onFocus={e=>e.target.select()}/></div>
+      <div className="field"><label className="lbl">Ряды</label><input type="number" value={g.rows} onChange={e=>setForm({...form,gauge:{...g,rows:+e.target.value}})} onFocus={e=>e.target.select()}/></div>
     </div>
-    <div className="field"><label className="lbl">Образец (см)</label><input type="number" value={g.size} onChange={e=>setForm({...form,gauge:{...g,size:+e.target.value}})}/></div>
+    <div className="field"><label className="lbl">Образец (см)</label><input type="number" value={g.size} onChange={e=>setForm({...form,gauge:{...g,size:+e.target.value}})} onFocus={e=>e.target.select()}/></div>
     <div style={{fontSize:10,fontWeight:800,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".07em",marginBottom:7}}>Размеры (см)</div>
     <div className="grid2">
-      <div className="field"><label className="lbl">Ширина</label><input type="number" value={d.width} onChange={e=>setForm({...form,dimensions:{...d,width:+e.target.value}})}/></div>
-      <div className="field"><label className="lbl">Длина</label><input type="number" value={d.length} onChange={e=>setForm({...form,dimensions:{...d,length:+e.target.value}})}/></div>
+      <div className="field"><label className="lbl">Ширина</label><input type="number" value={d.width} onChange={e=>setForm({...form,dimensions:{...d,width:+e.target.value}})} onFocus={e=>e.target.select()}/></div>
+      <div className="field"><label className="lbl">Длина</label><input type="number" value={d.length} onChange={e=>setForm({...form,dimensions:{...d,length:+e.target.value}})} onFocus={e=>e.target.select()}/></div>
     </div>
     <div className="field"><label className="lbl">Заметки</label><textarea value={form.notes||""} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Особенности, модификации…" style={{minHeight:50}}/></div>
     <div className="row mt8"><button className="btn bp f1" onClick={onCreate} disabled={!form.name}>Создать</button><button className="btn bl" onClick={onBack}>Назад</button></div>
