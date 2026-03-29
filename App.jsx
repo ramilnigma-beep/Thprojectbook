@@ -1389,8 +1389,8 @@ function NewProjectSheet({onClose,onCreate}){
 
 function ManualForm({form,setForm,onCreate,onBack}){
   const g=form.gauge||{stitches:20,rows:28,size:10};const d=form.dimensions||{width:50,length:60};
-  return(<>g:"8px 12px",fontSize:12,fontWeight:600,color:"var(--teal)",marginBottom:12}}>✦ ИИ заполнил поля — проверьте</div>}
-    <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800,marginBottom:12}}>{isAI?"Проверить и создать":"Новый проект"}</div>
+  return(<>
+    <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800,marginBottom:12}}>Новый проект</div>
     <div className="field"><label className="lbl">Название *</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Норвежский свитер"/></div>
     <div className="grid2">
       <div className="field"><label className="lbl">Тип</label><select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>{PROJ_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
@@ -1415,3 +1415,4 @@ function ManualForm({form,setForm,onCreate,onBack}){
     <div className="row mt8"><button className="btn bp f1" onClick={onCreate} disabled={!form.name}>Создать</button><button className="btn bl" onClick={onBack}>Назад</button></div>
   </>);
 }
+
