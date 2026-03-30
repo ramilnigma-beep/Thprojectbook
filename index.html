@@ -334,9 +334,9 @@ const CSS=`
 }
 .app.fs-sm{--fs-sm:11px;--fs-md:12px;--fs-lg:15px}
 .app.fs-lg{--fs-sm:14px;--fs-md:17px;--fs-lg:22px}
-  html{width:100%}
-  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent}
-.app{width:100%;max-width:600px;margin:0 auto;background:var(--bg);position:relative;overflow-x:hidden;transition:background .3s}
+  html{width:100%;overflow-x:hidden}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+.app{width:100%;max-width:600px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;overflow-x:hidden;transition:background .3s}
 .bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 40% at 20% 10%,var(--mesh1) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 80% 80%,var(--mesh2) 0%,transparent 70%)}
 .topbar{position:sticky;top:0;z-index:100;height:58px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--glass-border)}
 .logo{display:flex;align-items:center;gap:8px}
@@ -353,7 +353,7 @@ const CSS=`
 .snav::-webkit-scrollbar{display:none}
 .stab{flex-shrink:0;border:none;background:transparent;padding:10px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--muted);border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;transition:all .18s}
 .stab.on{color:var(--teal);border-bottom-color:var(--teal)}
-.page{padding:13px 13px 88px;position:relative;z-index:1;animation:fu .28s ease;overflow-y:visible}
+.page{padding:13px 13px 88px;position:relative;z-index:1;animation:fu .28s ease}
 @keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .card{background:var(--card);border-radius:var(--r);padding:14px;border:1px solid var(--border);margin-bottom:11px;box-shadow:0 4px 20px rgba(0,0,0,0.25)}
 .card-glow{background:var(--card);border-radius:var(--r);padding:14px;border:1px solid var(--border2);margin-bottom:11px;box-shadow:0 0 28px rgba(27,174,200,0.1),0 4px 20px rgba(0,0,0,0.25)}
@@ -479,13 +479,13 @@ select option{background:var(--bg2)}
 .badge-card.earned .badge-ic{filter:none;opacity:1}
 .badge-nm{font-size:10px;font-weight:700;color:var(--muted);line-height:1.3}
 .badge-card.earned .badge-nm{color:var(--text)}
-.onboard{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 26px;overflow-y:auto}
+.onboard{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 26px;overflow:hidden}
 .onboard-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;text-align:center;margin-bottom:10px}
 .onboard-desc{font-size:var(--fs-md);font-weight:500;color:var(--muted2);text-align:center;line-height:1.6;margin-bottom:24px;max-width:320px}
 .onboard-dots{display:flex;gap:6px;margin-bottom:22px}
 .onboard-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .2s}
 .onboard-dot.on{background:var(--teal);width:20px;border-radius:4px}
-.auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 18px 40px;position:relative;z-index:1}
+.auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 18px 40px;position:relative;z-index:1;overflow-y:auto}
 .auth-card{width:100%;background:var(--card);border:1px solid var(--border);border-radius:22px;padding:22px 18px;box-shadow:0 8px 36px rgba(0,0,0,0.25)}
 .auth-tabs{display:flex;background:var(--card2);border-radius:12px;padding:3px;margin-bottom:18px}
 .auth-tab{flex:1;border:none;background:transparent;cursor:pointer;padding:9px;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--muted);transition:all .2s}
@@ -528,7 +528,7 @@ select option{background:var(--bg2)}
 .pcard{background:var(--card);border-radius:var(--r);padding:13px;border:1px solid var(--border);margin-bottom:10px;cursor:pointer;transition:all .2s;box-shadow:0 4px 18px rgba(0,0,0,0.22)}
 .pcard:hover{border-color:var(--border2);transform:translateY(-2px)}
 .pcard:active{transform:scale(.98)}
-.sc-wrap{display:flex;flex-direction:column;align-items:center;padding:40px 14px 88px;position:relative;z-index:1;min-height:0}
+.sc-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 130px);padding:14px 14px 88px;position:relative;z-index:1}
 .sc-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);border:none;background:transparent;text-align:center;outline:none;width:200px}
 .sc-name::placeholder{color:var(--muted)}
 .sc-goal-input{width:85px;text-align:center;padding:6px 10px;font-size:13px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Inter',sans-serif;font-weight:600;outline:none}
@@ -547,6 +547,41 @@ select option{background:var(--bg2)}
 .mu{color:var(--muted)}.fw8{font-weight:800}
 .mt4{margin-top:4px}.mt8{margin-top:8px}.mt12{margin-top:12px}
 .mb4{margin-bottom:4px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}
+/* SCHEMA MODULE */
+.schema-toolbar{display:flex;gap:6px;padding:10px 13px;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:58px;z-index:10}
+.schema-toolbar::-webkit-scrollbar{display:none}
+.stool{border:none;border-radius:9px;padding:7px 11px;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0}
+.stool.active{background:var(--teal);color:#fff}
+.stool:not(.active){background:var(--card2);color:var(--muted);border:1px solid var(--border)}
+.stool:active{transform:scale(.93)}
+.schema-canvas-wrap{position:relative;overflow:hidden;touch-action:none;background:var(--card2);border-radius:12px;margin:12px 13px}
+.schema-row-highlight{position:absolute;left:0;right:0;background:rgba(27,174,200,0.25);border-top:2px solid var(--teal);border-bottom:2px solid var(--teal);pointer-events:none;z-index:5;transition:top .2s}
+.schema-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--card);border-top:1px solid var(--border)}
+.schema-row-label{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);text-align:center}
+.schema-row-sub{font-size:11px;color:var(--muted);font-weight:500;text-align:center}
+.schema-legend{padding:12px 13px;display:flex;flex-wrap:wrap;gap:8px}
+.schema-legend-item{display:flex;align-items:center;gap:6px;background:var(--card2);border-radius:8px;padding:5px 9px;font-size:12px;font-weight:600}
+.schema-legend-swatch{width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,0.15);flex-shrink:0}
+.schema-setup{padding:20px 13px}
+.schema-type-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.schema-type-card{background:var(--card2);border:2px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s}
+.schema-type-card.on{border-color:var(--teal);background:rgba(27,174,200,0.08)}
+.schema-type-card:active{transform:scale(.97)}
+.schema-type-icon{font-size:32px;margin-bottom:8px}
+.schema-type-label{font-weight:800;font-size:13px;margin-bottom:3px}
+.schema-type-desc{font-size:11px;color:var(--muted);font-weight:500;line-height:1.4}
+.color-palette{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.color-swatch{width:30px;height:30px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0}
+.color-swatch.on{border-color:var(--text);transform:scale(1.15)}
+.symbol-palette{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.sym-btn{width:40px;height:40px;border-radius:8px;cursor:pointer;border:1.5px solid var(--border);background:var(--card2);font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;font-weight:700}
+.sym-btn.on{border-color:var(--teal);background:rgba(27,174,200,0.15);color:var(--teal)}
+.schema-list-item{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px}
+.schema-list-item:active{transform:scale(.98)}
+.schema-preview{width:48px;height:48px;border-radius:8px;border:1px solid var(--border);overflow:hidden;flex-shrink:0;background:var(--bg2)}
+.schema-info{flex:1}
+.schema-name{font-weight:800;font-size:14px;margin-bottom:2px}
+.schema-meta{font-size:11px;color:var(--muted);font-weight:500}
 /* LIGHT FIXES */
 .app.light .ctit,.app.light .sh,.app.light .et,.app.light .yn,.app.light .mct,.app.light .stxt,.app.light .tlnote,.app.light .irv,.app.light .wtk-name{color:#0F2A3A}
 .app.light .csub,.app.light .irk,.app.light .lbl,.app.light .tldate,.app.light .yd,.app.light .mcd,.app.light .mu{color:#4A6E80}
@@ -819,12 +854,20 @@ function ProjectCard({project,onOpen}){
 
 // ── PROJECT DETAIL ────────────────────────────────────────────────────────────
 function ProjectDetail({project,view,setView,onBack,onUpdate,onDelete,onDuplicate,showToast}){
-  const tabs=[{id:"overview",label:"📋 Обзор"},{id:"counter",label:"🔢 Счётчик"},{id:"steps",label:"📖 Шаги"},{id:"calc",label:"📐 Расчёт"},{id:"timeline",label:"📸 Журнал"}];
+  const tabs=[
+    {id:"overview",label:"📋 Обзор"},
+    {id:"counter",label:"🔢 Счётчик"},
+    {id:"steps",label:"📖 Шаги"},
+    {id:"schema",label:"🗺 Схема"},
+    {id:"calc",label:"📐 Расчёт"},
+    {id:"timeline",label:"📸 Журнал"},
+  ];
   return(<div><TopBar onBack={onBack} title={project.name}/>
     <div className="snav">{tabs.map(t=><button key={t.id} className={`stab ${view===t.id?"on":""}`} onClick={()=>setView(t.id)}>{t.label}</button>)}</div>
     {view==="overview"&&<OverviewTab project={project} onUpdate={onUpdate} onDelete={onDelete} onDuplicate={onDuplicate} showToast={showToast}/>}
     {view==="counter"&&<CounterTab project={project} onUpdate={onUpdate} showToast={showToast}/>}
     {view==="steps"&&<StepsTab project={project} onUpdate={onUpdate} showToast={showToast}/>}
+    {view==="schema"&&<SchemaTab project={project} onUpdate={onUpdate} showToast={showToast}/>}
     {view==="calc"&&<CalcTab project={project} onUpdate={onUpdate} showToast={showToast}/>}
     {view==="timeline"&&<TimelineTab project={project} onUpdate={onUpdate} showToast={showToast}/>}
   </div>);
@@ -1706,6 +1749,641 @@ function TimelineTab({project,onUpdate,showToast}){
     </div>
   );
 }
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SCHEMA MODULE — Модуль схем вязания
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Константы ─────────────────────────────────────────────────────────────────
+const SCHEMA_COLORS = [
+  "#1BAEC8","#1B3A6B","#F5C842","#EB5757","#6FCF97",
+  "#BB6BD9","#E07A48","#56CCF2","#27AE60","#F2994A",
+  "#9B51E0","#2D9CDB","#EB2F96","#333333","#888888",
+  "#FFFFFF","#FFE4B5","#E8F5E9","#FFF3CD","#F8D7DA",
+];
+
+const SYMBOLS = [
+  {id:"empty", label:"□", desc:"Пустая"},
+  {id:"knit",  label:"—", desc:"Лицевая"},
+  {id:"purl",  label:"•", desc:"Изнаночная"},
+  {id:"yo",    label:"○", desc:"Накид"},
+  {id:"k2tog", label:"\\", desc:"Убавка"},
+  {id:"ssk",   label:"/",  desc:"Убавка влево"},
+  {id:"sl",    label:"V",  desc:"Снять"},
+  {id:"cable", label:"X",  desc:"Коса"},
+  {id:"cross", label:"+",  desc:"Перекрест"},
+  {id:"bobble",label:"B",  desc:"Шишечка"},
+  {id:"block", label:"■",  desc:"Заполнено"},
+  {id:"erase", label:"✕",  desc:"Ластик"},
+];
+
+const SYMBOL_COLORS = {
+  empty:"transparent", knit:"#1BAEC8", purl:"#1B3A6B",
+  yo:"#F5C842", k2tog:"#EB5757", ssk:"#6FCF97",
+  sl:"#BB6BD9", cable:"#E07A48", cross:"#56CCF2",
+  bobble:"#27AE60", block:"#333333", erase:"transparent",
+};
+
+// ── SchemaTab ─────────────────────────────────────────────────────────────────
+function SchemaTab({project, onUpdate, showToast}){
+  const schemas = project.schemas || [];
+  const [view, setView] = useState("list"); // list | editor | viewer
+  const [editingSchema, setEditingSchema] = useState(null);
+
+  const openNew = () => {
+    setEditingSchema(null);
+    setView("editor");
+  };
+
+  const openEdit = (schema) => {
+    setEditingSchema(schema);
+    setView("editor");
+  };
+
+  const openView = (schema) => {
+    setEditingSchema(schema);
+    setView("viewer");
+  };
+
+  const saveSchema = (schema) => {
+    const existing = schemas.findIndex(s => s.id === schema.id);
+    let newSchemas;
+    if(existing >= 0){
+      newSchemas = schemas.map(s => s.id === schema.id ? schema : s);
+    } else {
+      newSchemas = [schema, ...schemas];
+    }
+    onUpdate(p => ({...p, schemas: newSchemas}));
+    setView("list");
+    showToast("✓ Схема сохранена");
+  };
+
+  const deleteSchema = (id) => {
+    onUpdate(p => ({...p, schemas: (p.schemas||[]).filter(s => s.id !== id)}));
+    showToast("✓ Схема удалена");
+  };
+
+  // Текущий ряд из счётчика проекта
+  const currentRow = (project.sections||[]).reduce((max, s) => Math.max(max, s.count||0), 0);
+
+  if(view === "editor") return (
+    <SchemaEditor
+      schema={editingSchema}
+      onSave={saveSchema}
+      onBack={() => setView("list")}
+    />
+  );
+
+  if(view === "viewer") return (
+    <SchemaViewer
+      schema={editingSchema}
+      currentRow={currentRow}
+      onBack={() => setView("list")}
+      onEdit={() => {setView("editor");}}
+    />
+  );
+
+  return (
+    <div className="page">
+      <div className="sh">🗺 <span>Схемы</span></div>
+
+      <button className="btn bp bfull mb12" onClick={openNew}>
+        ＋ Создать схему
+      </button>
+
+      {schemas.length === 0 ? (
+        <div className="empty">
+          <div className="eic">🗺</div>
+          <div className="et">Схем нет</div>
+          <div className="ed">Создайте цветную или символьную схему и вяжите по ней прямо в приложении.</div>
+        </div>
+      ) : (
+        schemas.map(s => (
+          <div key={s.id} className="schema-list-item" onClick={() => openView(s)}>
+            <SchemaPreview schema={s}/>
+            <div className="schema-info">
+              <div className="schema-name">{s.name}</div>
+              <div className="schema-meta">
+                {s.type === "color" ? "🎨 Цветная" : "📝 Символьная"} · {s.cols}×{s.rows} клеток
+              </div>
+            </div>
+            <button
+              className="btn bd bsm"
+              style={{padding:"5px 9px"}}
+              onClick={e => {e.stopPropagation(); deleteSchema(s.id);}}
+            >✕</button>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ── Миниатюра схемы ───────────────────────────────────────────────────────────
+function SchemaPreview({schema}){
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = 48, H = 48;
+    ctx.clearRect(0,0,W,H);
+    const cellW = W / Math.min(schema.cols, 12);
+    const cellH = H / Math.min(schema.rows, 12);
+    const cells = schema.cells || {};
+    for(let r = 0; r < Math.min(schema.rows, 12); r++){
+      for(let c = 0; c < Math.min(schema.cols, 12); c++){
+        const key = `${r}_${c}`;
+        const val = cells[key];
+        if(schema.type === "color"){
+          ctx.fillStyle = val || "#1E293B";
+          ctx.fillRect(c*cellW, r*cellH, cellW-0.5, cellH-0.5);
+        } else {
+          ctx.fillStyle = "#1E293B";
+          ctx.fillRect(c*cellW, r*cellH, cellW-0.5, cellH-0.5);
+          if(val && val !== "empty"){
+            ctx.fillStyle = SYMBOL_COLORS[val] || "#1BAEC8";
+            ctx.font = `${Math.min(cellW,cellH)*0.7}px monospace`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(SYMBOLS.find(s=>s.id===val)?.label||"", c*cellW+cellW/2, r*cellH+cellH/2);
+          }
+        }
+      }
+    }
+  }, [schema]);
+  return <canvas ref={canvasRef} width={48} height={48} className="schema-preview"/>;
+}
+
+// ── Редактор схем ─────────────────────────────────────────────────────────────
+function SchemaEditor({schema, onSave, onBack}){
+  const isNew = !schema;
+  const [step, setStep] = useState(isNew ? "setup" : "draw"); // setup | draw
+  const [name, setName] = useState(schema?.name || "Новая схема");
+  const [type, setType] = useState(schema?.type || "color"); // color | symbol
+  const [cols, setCols] = useState(schema?.cols || 20);
+  const [rows, setRows] = useState(schema?.rows || 20);
+  const [cells, setCells] = useState(schema?.cells || {});
+  const [activeTool, setActiveTool] = useState(type === "color" ? SCHEMA_COLORS[0] : "knit");
+  const [history, setHistory] = useState([schema?.cells || {}]);
+  const [histIdx, setHistIdx] = useState(0);
+  const [drawing, setDrawing] = useState(false);
+  const [zoom, setZoom] = useState(1);
+
+  const CELL_SIZE = 26;
+
+  // Undo / Redo
+  const pushHistory = (newCells) => {
+    const newHist = history.slice(0, histIdx+1);
+    newHist.push({...newCells});
+    setHistory(newHist);
+    setHistIdx(newHist.length-1);
+    setCells(newCells);
+  };
+
+  const undo = () => {
+    if(histIdx <= 0) return;
+    const ni = histIdx-1;
+    setHistIdx(ni);
+    setCells({...history[ni]});
+  };
+
+  const redo = () => {
+    if(histIdx >= history.length-1) return;
+    const ni = histIdx+1;
+    setHistIdx(ni);
+    setCells({...history[ni]});
+  };
+
+  const paintCell = (r, c) => {
+    const key = `${r}_${c}`;
+    const newCells = {...cells};
+    if(type === "color"){
+      if(activeTool === "erase") delete newCells[key];
+      else newCells[key] = activeTool;
+    } else {
+      if(activeTool === "erase") delete newCells[key];
+      else newCells[key] = activeTool;
+    }
+    return newCells;
+  };
+
+  const handleCellTouch = (r, c) => {
+    const newCells = paintCell(r, c);
+    pushHistory(newCells);
+  };
+
+  const getColorLegend = () => {
+    if(type !== "color") return [];
+    const used = {};
+    Object.values(cells).forEach(v => { if(v) used[v] = true; });
+    return Object.keys(used);
+  };
+
+  const getSymbolLegend = () => {
+    if(type !== "symbol") return [];
+    const used = {};
+    Object.values(cells).forEach(v => { if(v && v !== "empty") used[v] = true; });
+    return Object.keys(used).map(id => SYMBOLS.find(s=>s.id===id)).filter(Boolean);
+  };
+
+  const handleSave = () => {
+    if(!name.trim()) return;
+    onSave({
+      id: schema?.id || `sch${Date.now()}`,
+      name: name.trim(),
+      type, cols, rows, cells,
+      createdAt: schema?.createdAt || new Date().toISOString().split("T")[0],
+    });
+  };
+
+  const fillAll = (color) => {
+    const newCells = {};
+    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) newCells[`${r}_${c}`] = color;
+    pushHistory(newCells);
+  };
+
+  const clearAll = () => { pushHistory({}); };
+
+  if(step === "setup") return (
+    <div className="page">
+      <div className="sh">Создать <span>схему</span></div>
+
+      <div className="field"><label className="lbl">Название</label>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Норвежский узор"/>
+      </div>
+
+      <div className="lbl" style={{marginBottom:8}}>Тип схемы</div>
+      <div className="schema-type-cards mb12">
+        <div className={`schema-type-card ${type==="color"?"on":""}`} onClick={()=>{setType("color");setActiveTool(SCHEMA_COLORS[0]);}}>
+          <div className="schema-type-icon">🎨</div>
+          <div className="schema-type-label">Цветная</div>
+          <div className="schema-type-desc">Жаккард, интарсия — цветные клетки</div>
+        </div>
+        <div className={`schema-type-card ${type==="symbol"?"on":""}`} onClick={()=>{setType("symbol");setActiveTool("knit");}}>
+          <div className="schema-type-icon">📝</div>
+          <div className="schema-type-label">Символьная</div>
+          <div className="schema-type-desc">Стандартные обозначения петель</div>
+        </div>
+      </div>
+
+      <div className="grid2">
+        <div className="field"><label className="lbl">Столбцов (ширина)</label>
+          <input type="number" value={cols} onFocus={e=>e.target.select()} onChange={e=>setCols(Math.max(2,Math.min(60,+e.target.value||2)))} placeholder="20"/>
+        </div>
+        <div className="field"><label className="lbl">Рядов (высота)</label>
+          <input type="number" value={rows} onFocus={e=>e.target.select()} onChange={e=>setRows(Math.max(2,Math.min(100,+e.target.value||2)))} placeholder="20"/>
+        </div>
+      </div>
+
+      <div style={{background:"rgba(27,174,200,0.08)",border:"1px solid rgba(27,174,200,0.2)",borderRadius:10,padding:"10px 12px",fontSize:12,fontWeight:500,color:"var(--teal)",lineHeight:1.5,marginBottom:16}}>
+        💡 Для шапки обычно 80-120 столбцов × 30-60 рядов. Для раппорта узора — 8-24 × 8-24.
+      </div>
+
+      <div className="row">
+        <button className="btn bp f1" onClick={()=>setStep("draw")} disabled={!name.trim()}>
+          Далее — рисовать →
+        </button>
+        <button className="btn bl" onClick={onBack}>Отмена</button>
+      </div>
+    </div>
+  );
+
+  // ── Экран рисования ───────────────────────────────────────────────────────
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
+      {/* Топбар редактора */}
+      <div className="topbar">
+        <div className="logo">
+          <button className="tb-btn" onClick={onBack} style={{marginRight:6}}>←</button>
+          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:13}}>{name}</div>
+        </div>
+        <div className="row" style={{gap:6}}>
+          <button className="tb-btn" onClick={undo} style={{opacity:histIdx<=0?.4:1}} title="Отмена">↩</button>
+          <button className="tb-btn" onClick={redo} style={{opacity:histIdx>=history.length-1?.4:1}} title="Повтор">↪</button>
+          <button className="btn bp bsm" onClick={handleSave}>Сохранить</button>
+        </div>
+      </div>
+
+      {/* Тулбар инструментов */}
+      <div className="schema-toolbar">
+        {type === "color" ? (
+          <>
+            {SCHEMA_COLORS.map(c => (
+              <div key={c} className={`color-swatch ${activeTool===c?"on":""}`}
+                style={{background:c, width:28, height:28, borderRadius:7, cursor:"pointer",
+                  border: activeTool===c?"3px solid var(--text)":"2px solid rgba(255,255,255,0.15)",
+                  flexShrink:0}}
+                onClick={()=>setActiveTool(c)}/>
+            ))}
+            <div className={`color-swatch ${activeTool==="erase"?"on":""}`}
+              style={{background:"var(--card2)",width:28,height:28,borderRadius:7,cursor:"pointer",
+                border:activeTool==="erase"?"3px solid var(--danger)":"2px solid var(--border)",
+                display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}
+              onClick={()=>setActiveTool("erase")}>✕</div>
+          </>
+        ) : (
+          <>
+            {SYMBOLS.map(s => (
+              <div key={s.id} className={`sym-btn ${activeTool===s.id?"on":""}`}
+                style={{background: activeTool===s.id?"rgba(27,174,200,0.15)":"var(--card2)"}}
+                onClick={()=>setActiveTool(s.id)} title={s.desc}>
+                {s.label}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Быстрые действия */}
+      <div style={{display:"flex",gap:6,padding:"8px 13px",background:"var(--card)",borderBottom:"1px solid var(--border)"}}>
+        <button className="btn bl bsm" onClick={clearAll}>🗑 Очистить</button>
+        {type==="color" && activeTool !== "erase" && (
+          <button className="btn bl bsm" onClick={()=>fillAll(activeTool)}>🖌 Залить всё</button>
+        )}
+        <div style={{flex:1}}/>
+        <button className="stool" onClick={()=>setZoom(z=>Math.min(z+0.25,3))}>＋</button>
+        <button className="stool" onClick={()=>setZoom(z=>Math.max(z-0.25,0.5))}>−</button>
+        <span style={{fontSize:11,fontWeight:700,color:"var(--muted)",alignSelf:"center"}}>{Math.round(zoom*100)}%</span>
+      </div>
+
+      {/* Холст */}
+      <div style={{flex:1,overflow:"auto",WebkitOverflowScrolling:"touch",padding:"13px"}}>
+        <SchemaCanvas
+          rows={rows} cols={cols} cells={cells}
+          type={type} zoom={zoom}
+          cellSize={CELL_SIZE}
+          activeTool={activeTool}
+          onCellPaint={handleCellTouch}
+          highlightRow={null}
+          readonly={false}
+        />
+
+        {/* Легенда */}
+        {type==="color" && getColorLegend().length>0 && (
+          <div style={{marginTop:12}}>
+            <div className="lbl" style={{marginBottom:6}}>Легенда</div>
+            <div className="schema-legend">
+              {getColorLegend().map((c,i) => (
+                <div key={c} className="schema-legend-item">
+                  <div className="schema-legend-swatch" style={{background:c}}/>
+                  <span>Цвет {i+1}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {type==="symbol" && getSymbolLegend().length>0 && (
+          <div style={{marginTop:12}}>
+            <div className="lbl" style={{marginBottom:6}}>Легенда</div>
+            <div className="schema-legend">
+              {getSymbolLegend().map(s => (
+                <div key={s.id} className="schema-legend-item">
+                  <div style={{width:18,height:18,borderRadius:4,background:"var(--card)",border:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:SYMBOL_COLORS[s.id]||"var(--teal)",flexShrink:0}}>{s.label}</div>
+                  <span>{s.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Холст схемы (используется и в редакторе и в просмотре) ───────────────────
+function SchemaCanvas({rows, cols, cells, type, zoom, cellSize, activeTool, onCellPaint, highlightRow, readonly}){
+  const canvasRef = useRef(null);
+  const drawing = useRef(false);
+  const lastCell = useRef(null);
+
+  const CS = Math.round(cellSize * zoom);
+  const W = cols * CS;
+  const H = rows * CS;
+
+  const draw = () => {
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0,0,W,H);
+
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const key = `${r}_${c}`;
+        const val = cells[key];
+        const x = c*CS, y = r*CS;
+
+        // Background
+        if(type === "color"){
+          ctx.fillStyle = val || (r%2===0&&c%2===0?"#1A2535":"#1E293B");
+          ctx.fillRect(x, y, CS, CS);
+        } else {
+          ctx.fillStyle = r%2===0?"#1A2535":"#1E293B";
+          ctx.fillRect(x, y, CS, CS);
+          if(val && val !== "empty"){
+            const sym = SYMBOLS.find(s=>s.id===val);
+            ctx.fillStyle = SYMBOL_COLORS[val] || "#1BAEC8";
+            ctx.font = `bold ${Math.max(CS*0.55,8)}px monospace`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(sym?.label||"", x+CS/2, y+CS/2);
+          }
+        }
+
+        // Grid lines
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x+0.25, y+0.25, CS-0.5, CS-0.5);
+      }
+    }
+
+    // Row numbers on left
+    if(CS >= 14){
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.font = `${Math.max(CS*0.4,8)}px Inter,sans-serif`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for(let r=0;r<rows;r+=Math.max(1,Math.floor(5/zoom))){
+        ctx.fillText(rows-r, -3, r*CS+CS/2);
+      }
+    }
+
+    // Highlight current row
+    if(highlightRow !== null && highlightRow >= 0 && highlightRow < rows){
+      const displayRow = rows - 1 - highlightRow;
+      ctx.fillStyle = "rgba(27,174,200,0.3)";
+      ctx.fillRect(0, displayRow*CS, W, CS);
+      ctx.strokeStyle = "#1BAEC8";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, displayRow*CS, W, CS);
+    }
+  };
+
+  useEffect(draw, [cells, zoom, highlightRow, rows, cols, type]);
+
+  const getCellFromEvent = (e, canvas) => {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const c = Math.floor(x / CS);
+    const r = Math.floor(y / CS);
+    if(c >= 0 && c < cols && r >= 0 && r < rows) return {r,c};
+    return null;
+  };
+
+  const onTouchStart = (e) => {
+    if(readonly) return;
+    e.preventDefault();
+    drawing.current = true;
+    const cell = getCellFromEvent(e, canvasRef.current);
+    if(cell) { lastCell.current = cell; onCellPaint(cell.r, cell.c); }
+  };
+  const onTouchMove = (e) => {
+    if(readonly || !drawing.current) return;
+    e.preventDefault();
+    const cell = getCellFromEvent(e, canvasRef.current);
+    if(cell && (cell.r !== lastCell.current?.r || cell.c !== lastCell.current?.c)){
+      lastCell.current = cell;
+      onCellPaint(cell.r, cell.c);
+    }
+  };
+  const onTouchEnd = () => { drawing.current = false; };
+  const onMouseDown = (e) => {
+    if(readonly) return;
+    drawing.current = true;
+    const cell = getCellFromEvent(e, canvasRef.current);
+    if(cell) { lastCell.current = cell; onCellPaint(cell.r, cell.c); }
+  };
+  const onMouseMove = (e) => {
+    if(readonly || !drawing.current) return;
+    const cell = getCellFromEvent(e, canvasRef.current);
+    if(cell && (cell.r !== lastCell.current?.r || cell.c !== lastCell.current?.c)){
+      lastCell.current = cell;
+      onCellPaint(cell.r, cell.c);
+    }
+  };
+  const onMouseUp = () => { drawing.current = false; };
+
+  return (
+    <div style={{paddingLeft:24}}>
+      <canvas ref={canvasRef} width={W} height={H}
+        style={{display:"block",touchAction:"none",cursor:readonly?"default":"crosshair",borderRadius:4}}
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}
+      />
+    </div>
+  );
+}
+
+// ── Просмотр схемы ────────────────────────────────────────────────────────────
+function SchemaViewer({schema, currentRow, onBack, onEdit}){
+  const [row, setRow] = useState(Math.max(0, currentRow-1)); // 0-based, снизу
+  const [zoom, setZoom] = useState(1);
+  const CELL_SIZE = 24;
+
+  const totalRows = schema.rows;
+  const displayRowNum = totalRows - row; // человеческий номер (снизу вверх)
+  const isEven = row % 2 === 0;
+
+  const prevRow = () => setRow(r => Math.max(0, r-1));
+  const nextRow = () => setRow(r => Math.min(totalRows-1, r+1));
+
+  // Легенда
+  const colorLegend = schema.type === "color"
+    ? [...new Set(Object.values(schema.cells||{}).filter(Boolean))]
+    : [];
+  const symbolLegend = schema.type === "symbol"
+    ? [...new Set(Object.values(schema.cells||{}).filter(v=>v&&v!=="empty"))]
+        .map(id => SYMBOLS.find(s=>s.id===id)).filter(Boolean)
+    : [];
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
+      {/* Топбар */}
+      <div className="topbar">
+        <div className="logo">
+          <button className="tb-btn" onClick={onBack} style={{marginRight:6}}>←</button>
+          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:13}}>{schema.name}</div>
+        </div>
+        <div className="row" style={{gap:6}}>
+          <button className="tb-btn" onClick={()=>setZoom(z=>Math.max(z-0.25,0.4))}>−</button>
+          <button className="tb-btn" onClick={()=>setZoom(z=>Math.min(z+0.25,3))}>＋</button>
+          <button className="tb-btn" onClick={onEdit} title="Редактировать">✏️</button>
+        </div>
+      </div>
+
+      {/* Холст */}
+      <div style={{flex:1,overflow:"auto",WebkitOverflowScrolling:"touch",padding:"13px 13px 0"}}>
+        <SchemaCanvas
+          rows={schema.rows} cols={schema.cols}
+          cells={schema.cells||{}}
+          type={schema.type}
+          zoom={zoom}
+          cellSize={CELL_SIZE}
+          activeTool={null}
+          onCellPaint={()=>{}}
+          highlightRow={row}
+          readonly={true}
+        />
+
+        {/* Легенда */}
+        {colorLegend.length > 0 && (
+          <div style={{marginTop:12}}>
+            <div className="lbl" style={{marginBottom:6}}>Легенда</div>
+            <div className="schema-legend">
+              {colorLegend.map((c,i)=>(
+                <div key={c} className="schema-legend-item">
+                  <div className="schema-legend-swatch" style={{background:c}}/>
+                  <span>Цвет {i+1}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {symbolLegend.length > 0 && (
+          <div style={{marginTop:12}}>
+            <div className="lbl" style={{marginBottom:6}}>Легенда</div>
+            <div className="schema-legend">
+              {symbolLegend.map(s=>(
+                <div key={s.id} className="schema-legend-item">
+                  <div style={{width:18,height:18,borderRadius:4,background:"var(--card)",border:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:SYMBOL_COLORS[s.id]||"var(--teal)",flexShrink:0}}>{s.label}</div>
+                  <span>{s.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Навигация по рядам */}
+      <div style={{background:"var(--card)",borderTop:"1px solid var(--border)",padding:"10px 13px",paddingBottom:"calc(10px + env(safe-area-inset-bottom,0px))"}}>
+        {/* Синхронизация со счётчиком */}
+        {currentRow > 0 && row !== currentRow-1 && (
+          <button className="btn bg bfull bsm" style={{marginBottom:10}}
+            onClick={()=>setRow(Math.max(0,currentRow-1))}>
+            🔢 Перейти к ряду счётчика ({currentRow})
+          </button>
+        )}
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <button className="btn bl" style={{width:52,height:52,borderRadius:14,justifyContent:"center",fontSize:22,flexShrink:0}}
+            onClick={prevRow} disabled={row<=0}>‹</button>
+          <div style={{flex:1,textAlign:"center"}}>
+            <div className="schema-row-label">Ряд {displayRowNum}</div>
+            <div className="schema-row-sub">
+              {isEven ? "→ слева направо" : "← справа налево"} · {totalRows - row} из {totalRows}
+            </div>
+          </div>
+          <button className="btn bp" style={{width:52,height:52,borderRadius:14,justifyContent:"center",fontSize:22,flexShrink:0}}
+            onClick={nextRow} disabled={row>=totalRows-1}>›</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 // ── YARN PAGE ─────────────────────────────────────────────────────────────────
 function YarnPage({yarns,onDelete,onAdd,showToast,setData,data}){
