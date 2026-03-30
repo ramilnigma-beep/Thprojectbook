@@ -93,7 +93,7 @@
   <script type="text/babel" data-presets="react">
     // Babel загрузит и скомпилирует App.jsx
     // Через fetch чтобы корректно обработать модуль
-    fetch('/App.jsx')
+    fetch('/App.js')
       .then(r => r.text())
       .then(code => {
         const transformed = Babel.transform(code, {
