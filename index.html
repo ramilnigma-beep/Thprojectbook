@@ -10,32 +10,52 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="ТХ Вязание"/>
   <meta name="description" content="Менеджер проектов по вязанию от магазина Твоё хобби"/>
-  <style>
+    <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Разрешаем скроллинг явно */
     html {
       width: 100%;
-      /* НЕ ставим height:100% — это блокирует скроллинг */
+      height: 100%;
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
     }
     body {
       width: 100%;
+      min-height: 100%;
       background: #0A0F1A;
       font-family: sans-serif;
       overflow-x: hidden;
-      /* overflow-y НЕ трогаем — браузер сам скроллит */
+      /* НЕ устанавливаем overflow-y — наследуем от html */
+      position: relative;
     }
     #root {
       width: 100%;
+      position: relative;
     }
+
+    /* Сплэш */
     #splash {
-      position: fixed; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 16px; color: #1BAEC8;
-      background: #0A0F1A; z-index: 9999;
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: #1BAEC8;
+      background: #0A0F1A;
+      z-index: 9999;
     }
     #splash-icon { font-size: 52px; animation: pulse 1.4s ease infinite; }
-    #splash-text { font-size: 14px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
-    @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.1);opacity:.6} }
+    #splash-text {
+      font-size: 14px; font-weight: 600;
+      letter-spacing: .08em; text-transform: uppercase; opacity: .7;
+    }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.1); opacity: .6; }
+    }
   </style>
 </head>
 <body>
@@ -335,7 +355,7 @@ const CSS=`
 .app.fs-sm{--fs-sm:11px;--fs-md:12px;--fs-lg:15px}
 .app.fs-lg{--fs-sm:14px;--fs-md:17px;--fs-lg:22px}
   html{width:100%;overflow-x:hidden}
-  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;}
 .app{width:100%;max-width:600px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;overflow-x:hidden;transition:background .3s}
 .bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 40% at 20% 10%,var(--mesh1) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 80% 80%,var(--mesh2) 0%,transparent 70%)}
 .topbar{position:sticky;top:0;z-index:100;height:58px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;background:var(--topbar-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--glass-border)}
@@ -353,7 +373,7 @@ const CSS=`
 .snav::-webkit-scrollbar{display:none}
 .stab{flex-shrink:0;border:none;background:transparent;padding:10px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--muted);border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;transition:all .18s}
 .stab.on{color:var(--teal);border-bottom-color:var(--teal)}
-.page{padding:13px 13px 88px;position:relative;z-index:1;animation:fu .28s ease}
+.page{padding:13px 13px 88px;animation:fu .28s ease}
 @keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .card{background:var(--card);border-radius:var(--r);padding:14px;border:1px solid var(--border);margin-bottom:11px;box-shadow:0 4px 20px rgba(0,0,0,0.25)}
 .card-glow{background:var(--card);border-radius:var(--r);padding:14px;border:1px solid var(--border2);margin-bottom:11px;box-shadow:0 0 28px rgba(27,174,200,0.1),0 4px 20px rgba(0,0,0,0.25)}
@@ -554,7 +574,7 @@ select option{background:var(--bg2)}
 .stool.active{background:var(--teal);color:#fff}
 .stool:not(.active){background:var(--card2);color:var(--muted);border:1px solid var(--border)}
 .stool:active{transform:scale(.93)}
-.schema-canvas-wrap{position:relative;overflow:hidden;touch-action:none;background:var(--card2);border-radius:12px;margin:12px 13px}
+.schema-canvas-wrap{position:relative;overflow:auto;background:var(--card2);border-radius:12px;margin:12px 13px;-webkit-overflow-scrolling:touch}
 .schema-row-highlight{position:absolute;left:0;right:0;background:rgba(27,174,200,0.25);border-top:2px solid var(--teal);border-bottom:2px solid var(--teal);pointer-events:none;z-index:5;transition:top .2s}
 .schema-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--card);border-top:1px solid var(--border)}
 .schema-row-label{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);text-align:center}
@@ -2644,6 +2664,15 @@ function ManualForm({form,setForm,onCreate,onBack}){
       // Монтируем
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement(AppComponent));
+
+        // Гарантируем скроллинг страницы после монтирования React
+        setTimeout(() => {
+          document.documentElement.style.overflowY = 'auto';
+          document.documentElement.style.webkitOverflowScrolling = 'touch';
+          document.body.style.overflowY = '';
+          document.body.style.height = '';
+          document.body.style.position = '';
+        }, 100);
 
     } catch(err) {
       console.error(err);
