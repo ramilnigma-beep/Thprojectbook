@@ -1808,32 +1808,14 @@ const SYMBOL_COLORS = {
 // ── SchemaTab ─────────────────────────────────────────────────────────────────
 function SchemaTab({project, onUpdate, showToast}){
   const schemas = project.schemas || [];
-  const [view, setView] = useState("list"); // list | editor | viewer
+  const [view, setView] = useState("list");
   const [editingSchema, setEditingSchema] = useState(null);
-
-  const openNew = () => {
-    setEditingSchema(null);
-    setView("editor");
-  };
-
-  const openEdit = (schema) => {
-    setEditingSchema(schema);
-    setView("editor");
-  };
-
-  const openView = (schema) => {
-    setEditingSchema(schema);
-    setView("viewer");
-  };
 
   const saveSchema = (schema) => {
     const existing = schemas.findIndex(s => s.id === schema.id);
-    let newSchemas;
-    if(existing >= 0){
-      newSchemas = schemas.map(s => s.id === schema.id ? schema : s);
-    } else {
-      newSchemas = [schema, ...schemas];
-    }
+    const newSchemas = existing >= 0
+      ? schemas.map(s => s.id === schema.id ? schema : s)
+      : [schema, ...schemas];
     onUpdate(p => ({...p, schemas: newSchemas}));
     setView("list");
     showToast("✓ Схема сохранена");
@@ -1844,59 +1826,57 @@ function SchemaTab({project, onUpdate, showToast}){
     showToast("✓ Схема удалена");
   };
 
-  // Текущий ряд из счётчика проекта
   const currentRow = (project.sections||[]).reduce((max, s) => Math.max(max, s.count||0), 0);
 
-  if(view === "editor") return (
-    <SchemaEditor
-      schema={editingSchema}
-      onSave={saveSchema}
-      onBack={() => setView("list")}
-    />
-  );
-
-  if(view === "viewer") return (
-    <SchemaViewer
-      schema={editingSchema}
-      currentRow={currentRow}
-      onBack={() => setView("list")}
-      onEdit={() => {setView("editor");}}
-    />
-  );
-
+  // Единый return — без условных return на верхнем уровне
   return (
-    <div className="page">
-      <div className="sh">🗺 <span>Схемы</span></div>
-
-      <button className="btn bp bfull mb12" onClick={openNew}>
-        ＋ Создать схему
-      </button>
-
-      {schemas.length === 0 ? (
-        <div className="empty">
-          <div className="eic">🗺</div>
-          <div className="et">Схем нет</div>
-          <div className="ed">Создайте цветную или символьную схему и вяжите по ней прямо в приложении.</div>
-        </div>
-      ) : (
-        schemas.map(s => (
-          <div key={s.id} className="schema-list-item" onClick={() => openView(s)}>
-            <SchemaPreview schema={s}/>
-            <div className="schema-info">
-              <div className="schema-name">{s.name}</div>
-              <div className="schema-meta">
-                {s.type === "color" ? "🎨 Цветная" : "📝 Символьная"} · {s.cols}×{s.rows} клеток
-              </div>
-            </div>
-            <button
-              className="btn bd bsm"
-              style={{padding:"5px 9px"}}
-              onClick={e => {e.stopPropagation(); deleteSchema(s.id);}}
-            >✕</button>
-          </div>
-        ))
+    <>
+      {view === "editor" && (
+        <SchemaEditor
+          schema={editingSchema}
+          onSave={saveSchema}
+          onBack={() => setView("list")}
+        />
       )}
-    </div>
+      {view === "viewer" && (
+        <SchemaViewer
+          schema={editingSchema}
+          currentRow={currentRow}
+          onBack={() => setView("list")}
+          onEdit={() => setView("editor")}
+        />
+      )}
+      {view === "list" && (
+        <div className="page">
+          <div className="sh">🗺 <span>Схемы</span></div>
+          <button className="btn bp bfull mb12" onClick={()=>{setEditingSchema(null);setView("editor");}}>
+            ＋ Создать схему
+          </button>
+          {schemas.length === 0 ? (
+            <div className="empty">
+              <div className="eic">🗺</div>
+              <div className="et">Схем нет</div>
+              <div className="ed">Создайте цветную или символьную схему и вяжите по ней прямо в приложении.</div>
+            </div>
+          ) : (
+            schemas.map(s => (
+              <div key={s.id} className="schema-list-item"
+                onClick={()=>{setEditingSchema(s);setView("viewer");}}>
+                <SchemaPreview schema={s}/>
+                <div className="schema-info">
+                  <div className="schema-name">{s.name}</div>
+                  <div className="schema-meta">
+                    {s.type === "color" ? "🎨 Цветная" : "📝 Символьная"} · {s.cols}×{s.rows}
+                  </div>
+                </div>
+                <button className="btn bd bsm" style={{padding:"5px 9px"}}
+                  onClick={e=>{e.stopPropagation();deleteSchema(s.id);}}>✕</button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1939,96 +1919,19 @@ function SchemaPreview({schema}){
 // ── Редактор схем ─────────────────────────────────────────────────────────────
 function SchemaEditor({schema, onSave, onBack}){
   const isNew = !schema;
-  const [step, setStep] = useState(isNew ? "setup" : "draw"); // setup | draw
+  const [step, setStep] = useState(isNew ? "setup" : "draw");
   const [name, setName] = useState(schema?.name || "Новая схема");
-  const [type, setType] = useState(schema?.type || "color"); // color | symbol
+  const [type, setType] = useState(schema?.type || "color");
   const [cols, setCols] = useState(schema?.cols || 20);
   const [rows, setRows] = useState(schema?.rows || 20);
   const [cells, setCells] = useState(schema?.cells || {});
   const [activeTool, setActiveTool] = useState(type === "color" ? SCHEMA_COLORS[0] : "knit");
   const [history, setHistory] = useState([schema?.cells || {}]);
   const [histIdx, setHistIdx] = useState(0);
-  const [drawing, setDrawing] = useState(false);
   const [zoom, setZoom] = useState(1);
-
-  const CELL_SIZE = 26;
-
-  // Undo / Redo
-  const pushHistory = (newCells) => {
-    const newHist = history.slice(0, histIdx+1);
-    newHist.push({...newCells});
-    setHistory(newHist);
-    setHistIdx(newHist.length-1);
-    setCells(newCells);
-  };
-
-  const undo = () => {
-    if(histIdx <= 0) return;
-    const ni = histIdx-1;
-    setHistIdx(ni);
-    setCells({...history[ni]});
-  };
-
-  const redo = () => {
-    if(histIdx >= history.length-1) return;
-    const ni = histIdx+1;
-    setHistIdx(ni);
-    setCells({...history[ni]});
-  };
-
-  const paintCell = (r, c) => {
-    const key = `${r}_${c}`;
-    const newCells = {...cells};
-    if(type === "color"){
-      if(activeTool === "erase") delete newCells[key];
-      else newCells[key] = activeTool;
-    } else {
-      if(activeTool === "erase") delete newCells[key];
-      else newCells[key] = activeTool;
-    }
-    return newCells;
-  };
-
-  const handleCellTouch = (r, c) => {
-    const newCells = paintCell(r, c);
-    pushHistory(newCells);
-  };
-
-  const getColorLegend = () => {
-    if(type !== "color") return [];
-    const used = {};
-    Object.values(cells).forEach(v => { if(v) used[v] = true; });
-    return Object.keys(used);
-  };
-
-  const getSymbolLegend = () => {
-    if(type !== "symbol") return [];
-    const used = {};
-    Object.values(cells).forEach(v => { if(v && v !== "empty") used[v] = true; });
-    return Object.keys(used).map(id => SYMBOLS.find(s=>s.id===id)).filter(Boolean);
-  };
-
-  const handleSave = () => {
-    if(!name.trim()) return;
-    onSave({
-      id: schema?.id || `sch${Date.now()}`,
-      name: name.trim(),
-      type, cols, rows, cells,
-      createdAt: schema?.createdAt || new Date().toISOString().split("T")[0],
-    });
-  };
-
-  const fillAll = (color) => {
-    const newCells = {};
-    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) newCells[`${r}_${c}`] = color;
-    pushHistory(newCells);
-  };
-
-  const clearAll = () => { pushHistory({}); };
-
-  // ── Переменные для экрана рисования (должны быть до условных return) ────────
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
+  const CELL_SIZE = 26;
   const STEP = Math.round(CELL_SIZE * zoom * 3);
 
   const moveCanvas = (dx, dy) => {
@@ -2038,188 +1941,218 @@ function SchemaEditor({schema, onSave, onBack}){
     setOffsetY(y => Math.max(0, Math.min(maxY, y + dy)));
   };
 
-  if(step === "setup") return (
-    <div className="page">
-      <div className="sh">Создать <span>схему</span></div>
+  const pushHistory = (newCells) => {
+    const newHist = history.slice(0, histIdx+1);
+    newHist.push({...newCells});
+    setHistory(newHist);
+    setHistIdx(newHist.length-1);
+    setCells(newCells);
+  };
+  const undo = () => { if(histIdx<=0)return; const ni=histIdx-1; setHistIdx(ni); setCells({...history[ni]}); };
+  const redo = () => { if(histIdx>=history.length-1)return; const ni=histIdx+1; setHistIdx(ni); setCells({...history[ni]}); };
+  const paintCell = (r, c) => {
+    const key = `${r}_${c}`;
+    const newCells = {...cells};
+    if(activeTool === "erase") delete newCells[key];
+    else newCells[key] = activeTool;
+    return newCells;
+  };
+  const handleCellTouch = (r, c) => { pushHistory(paintCell(r, c)); };
+  const getColorLegend = () => [...new Set(Object.values(cells).filter(Boolean))];
+  const getSymbolLegend = () => [...new Set(Object.values(cells).filter(v=>v&&v!=="empty"))].map(id=>SYMBOLS.find(s=>s.id===id)).filter(Boolean);
+  const fillAll = (color) => { const nc={}; for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) nc[`${r}_${c}`]=color; pushHistory(nc); };
+  const clearAll = () => { pushHistory({}); };
+  const handleSave = () => {
+    if(!name.trim()) return;
+    onSave({id:schema?.id||`sch${Date.now()}`,name:name.trim(),type,cols,rows,cells,
+      createdAt:schema?.createdAt||new Date().toISOString().split("T")[0]});
+  };
 
-      <div className="field"><label className="lbl">Название</label>
-        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Норвежский узор"/>
-      </div>
-
-      <div className="lbl" style={{marginBottom:8}}>Тип схемы</div>
-      <div className="schema-type-cards mb12">
-        <div className={`schema-type-card ${type==="color"?"on":""}`} onClick={()=>{setType("color");setActiveTool(SCHEMA_COLORS[0]);}}>
-          <div className="schema-type-icon">🎨</div>
-          <div className="schema-type-label">Цветная</div>
-          <div className="schema-type-desc">Жаккард, интарсия — цветные клетки</div>
-        </div>
-        <div className={`schema-type-card ${type==="symbol"?"on":""}`} onClick={()=>{setType("symbol");setActiveTool("knit");}}>
-          <div className="schema-type-icon">📝</div>
-          <div className="schema-type-label">Символьная</div>
-          <div className="schema-type-desc">Стандартные обозначения петель</div>
-        </div>
-      </div>
-
-      <div className="grid2">
-        <div className="field"><label className="lbl">Столбцов (ширина)</label>
-          <input type="number" value={cols} onFocus={e=>e.target.select()} onChange={e=>setCols(Math.max(2,Math.min(60,+e.target.value||2)))} placeholder="20"/>
-        </div>
-        <div className="field"><label className="lbl">Рядов (высота)</label>
-          <input type="number" value={rows} onFocus={e=>e.target.select()} onChange={e=>setRows(Math.max(2,Math.min(100,+e.target.value||2)))} placeholder="20"/>
-        </div>
-      </div>
-
-      <div style={{background:"rgba(27,174,200,0.08)",border:"1px solid rgba(27,174,200,0.2)",borderRadius:10,padding:"10px 12px",fontSize:12,fontWeight:500,color:"var(--teal)",lineHeight:1.5,marginBottom:16}}>
-        💡 Для шапки обычно 80-120 столбцов × 30-60 рядов. Для раппорта узора — 8-24 × 8-24.
-      </div>
-
-      <div className="row">
-        <button className="btn bp f1" onClick={()=>setStep("draw")} disabled={!name.trim()}>
-          Далее — рисовать →
-        </button>
-        <button className="btn bl" onClick={onBack}>Отмена</button>
-      </div>
-    </div>
-  );
-
-  // ── Экран рисования ───────────────────────────────────────────────────────
+  // Единый return с условным рендерингом — решает проблему Adjacent JSX
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
-
-      {/* Топбар */}
-      <div className="topbar">
-        <div className="logo">
-          <button className="tb-btn" onClick={onBack} style={{marginRight:6}}>←</button>
-          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:13}}>{name}</div>
-        </div>
-        <div className="row" style={{gap:6}}>
-          <button className="tb-btn" onClick={undo} style={{opacity:histIdx<=0?.4:1}}>↩</button>
-          <button className="tb-btn" onClick={redo} style={{opacity:histIdx>=history.length-1?.4:1}}>↪</button>
-          <button className="btn bp bsm" onClick={handleSave}>Сохранить</button>
-        </div>
-      </div>
-
-      {/* Тулбар цветов/символов */}
-      <div className="schema-toolbar">
-        {type === "color" ? (<>
-          {SCHEMA_COLORS.map(c => (
-            <div key={c}
-              style={{width:28,height:28,borderRadius:7,cursor:"pointer",flexShrink:0,background:c,
-                border:activeTool===c?"3px solid var(--text)":"2px solid rgba(255,255,255,0.15)"}}
-              onClick={()=>setActiveTool(c)}/>
-          ))}
-          <div style={{width:28,height:28,borderRadius:7,cursor:"pointer",flexShrink:0,
-            background:"var(--card2)",border:activeTool==="erase"?"3px solid var(--danger)":"2px solid var(--border)",
-            display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}
-            onClick={()=>setActiveTool("erase")}>✕</div>
-        </>) : (
-          SYMBOLS.map(s => (
-            <div key={s.id}
-              style={{width:36,height:36,borderRadius:8,cursor:"pointer",flexShrink:0,fontSize:15,fontWeight:700,
-                display:"flex",alignItems:"center",justifyContent:"center",
-                background:activeTool===s.id?"rgba(27,174,200,0.15)":"var(--card2)",
-                border:activeTool===s.id?"1.5px solid var(--teal)":"1.5px solid var(--border)",
-                color:activeTool===s.id?"var(--teal)":"var(--muted2)"}}
-              onClick={()=>setActiveTool(s.id)} title={s.desc}>
-              {s.label}
+    <>
+      {step === "setup" && (
+        <div className="page">
+          <div className="sh">Создать <span>схему</span></div>
+          <div className="field"><label className="lbl">Название</label>
+            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Норвежский узор"/>
+          </div>
+          <div className="lbl" style={{marginBottom:8}}>Тип схемы</div>
+          <div className="schema-type-cards mb12">
+            <div className={`schema-type-card ${type==="color"?"on":""}`}
+              onClick={()=>{setType("color");setActiveTool(SCHEMA_COLORS[0]);}}>
+              <div className="schema-type-icon">🎨</div>
+              <div className="schema-type-label">Цветная</div>
+              <div className="schema-type-desc">Жаккард, интарсия — цветные клетки</div>
             </div>
-          ))
-        )}
-      </div>
-
-      {/* Панель навигации + зум — фиксированная */}
-      <div style={{display:"flex",alignItems:"center",gap:5,padding:"7px 10px",
-        background:"var(--card)",borderBottom:"1px solid var(--border)",flexShrink:0}}>
-        <button className="btn bl bsm" onClick={clearAll}
-          style={{padding:"5px 9px",fontSize:12}}>🗑</button>
-        {type==="color" && activeTool !== "erase" && (
-          <button className="btn bl bsm" onClick={()=>fillAll(activeTool)}
-            style={{padding:"5px 9px",fontSize:12}}>🖌</button>
-        )}
-        <div style={{width:1,height:22,background:"var(--border)",margin:"0 2px"}}/>
-        <button onClick={()=>moveCanvas(-STEP,0)}
-          style={{width:32,height:32,borderRadius:8,border:"1px solid var(--border)",
-            background:"var(--card2)",cursor:"pointer",fontSize:16,color:"var(--muted2)",
-            display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
-        <div style={{display:"flex",flexDirection:"column",gap:2}}>
-          <button onClick={()=>moveCanvas(0,-STEP)}
-            style={{width:32,height:14,borderRadius:"5px 5px 2px 2px",border:"1px solid var(--border)",
-              background:"var(--card2)",cursor:"pointer",fontSize:9,color:"var(--muted2)",
-              display:"flex",alignItems:"center",justifyContent:"center"}}>▲</button>
-          <button onClick={()=>moveCanvas(0,STEP)}
-            style={{width:32,height:14,borderRadius:"2px 2px 5px 5px",border:"1px solid var(--border)",
-              background:"var(--card2)",cursor:"pointer",fontSize:9,color:"var(--muted2)",
-              display:"flex",alignItems:"center",justifyContent:"center"}}>▼</button>
+            <div className={`schema-type-card ${type==="symbol"?"on":""}`}
+              onClick={()=>{setType("symbol");setActiveTool("knit");}}>
+              <div className="schema-type-icon">📝</div>
+              <div className="schema-type-label">Символьная</div>
+              <div className="schema-type-desc">Стандартные обозначения петель</div>
+            </div>
+          </div>
+          <div className="grid2">
+            <div className="field"><label className="lbl">Столбцов (ширина)</label>
+              <input type="number" value={cols} onFocus={e=>e.target.select()}
+                onChange={e=>setCols(Math.max(2,Math.min(60,+e.target.value||2)))} placeholder="20"/>
+            </div>
+            <div className="field"><label className="lbl">Рядов (высота)</label>
+              <input type="number" value={rows} onFocus={e=>e.target.select()}
+                onChange={e=>setRows(Math.max(2,Math.min(100,+e.target.value||2)))} placeholder="20"/>
+            </div>
+          </div>
+          <div style={{background:"rgba(27,174,200,0.08)",border:"1px solid rgba(27,174,200,0.2)",
+            borderRadius:10,padding:"10px 12px",fontSize:12,fontWeight:600,color:"var(--teal)",
+            lineHeight:1.5,marginBottom:16}}>
+            💡 Для шапки: 80-120 × 30-60. Для раппорта узора: 8-24 × 8-24.
+          </div>
+          <div className="row">
+            <button className="btn bp f1" onClick={()=>setStep("draw")} disabled={!name.trim()}>
+              Далее — рисовать →
+            </button>
+            <button className="btn bl" onClick={onBack}>Отмена</button>
+          </div>
         </div>
-        <button onClick={()=>moveCanvas(STEP,0)}
-          style={{width:32,height:32,borderRadius:8,border:"1px solid var(--border)",
-            background:"var(--card2)",cursor:"pointer",fontSize:16,color:"var(--muted2)",
-            display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
-        <div style={{width:1,height:22,background:"var(--border)",margin:"0 2px"}}/>
-        <button onClick={()=>setZoom(z=>Math.max(z-0.25,0.4))}
-          style={{width:28,height:28,borderRadius:7,border:"1px solid var(--border)",
-            background:"var(--card2)",cursor:"pointer",fontSize:16,color:"var(--muted2)",
-            display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
-        <span style={{fontSize:11,fontWeight:800,color:"var(--teal)",minWidth:30,textAlign:"center"}}>
-          {Math.round(zoom*100)}%
-        </span>
-        <button onClick={()=>setZoom(z=>Math.min(z+0.25,3))}
-          style={{width:28,height:28,borderRadius:7,border:"1px solid var(--border)",
-            background:"var(--card2)",cursor:"pointer",fontSize:16,color:"var(--muted2)",
-            display:"flex",alignItems:"center",justifyContent:"center"}}>＋</button>
-      </div>
+      )}
 
-      {/* Область холста */}
-      <div style={{flex:1,overflow:"hidden",position:"relative",background:"var(--bg2)"}}>
-        <div style={{position:"absolute",left:-offsetX,top:-offsetY,
-          transition:"left .12s,top .12s",padding:"12px"}}>
-          <SchemaCanvas
-            rows={rows} cols={cols} cells={cells}
-            type={type} zoom={zoom} cellSize={CELL_SIZE}
-            activeTool={activeTool} onCellPaint={handleCellTouch}
-            highlightRow={null} readonly={false}
-          />
-          {type==="color" && getColorLegend().length>0 && (
-            <div style={{marginTop:12}}>
-              <div className="lbl" style={{marginBottom:6}}>Легенда</div>
-              <div className="schema-legend">
-                {getColorLegend().map((c,i) => (
-                  <div key={c} className="schema-legend-item">
-                    <div className="schema-legend-swatch" style={{background:c}}/>
-                    <span>Цвет {i+1}</span>
+      {step === "draw" && (
+        <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
+          {/* Топбар */}
+          <div className="topbar">
+            <div className="logo">
+              <button className="tb-btn" onClick={()=>isNew?setStep("setup"):onBack()} style={{marginRight:6}}>←</button>
+              <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:13}}>{name}</div>
+            </div>
+            <div className="row" style={{gap:6}}>
+              <button className="tb-btn" onClick={undo} style={{opacity:histIdx<=0?.4:1}}>↩</button>
+              <button className="tb-btn" onClick={redo} style={{opacity:histIdx>=history.length-1?.4:1}}>↪</button>
+              <button className="btn bp bsm" onClick={handleSave}>Сохранить</button>
+            </div>
+          </div>
+
+          {/* Тулбар инструментов */}
+          <div className="schema-toolbar">
+            {type === "color" ? (<>
+              {SCHEMA_COLORS.map(c => (
+                <div key={c}
+                  style={{width:28,height:28,borderRadius:7,cursor:"pointer",flexShrink:0,background:c,
+                    border:activeTool===c?"3px solid var(--text)":"2px solid rgba(255,255,255,0.15)"}}
+                  onClick={()=>setActiveTool(c)}/>
+              ))}
+              <div
+                style={{width:28,height:28,borderRadius:7,cursor:"pointer",flexShrink:0,
+                  background:"var(--card2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,
+                  border:activeTool==="erase"?"3px solid var(--danger)":"2px solid var(--border)"}}
+                onClick={()=>setActiveTool("erase")}>✕</div>
+            </>) : (
+              SYMBOLS.map(s => (
+                <div key={s.id}
+                  style={{width:36,height:36,borderRadius:8,cursor:"pointer",flexShrink:0,fontSize:15,fontWeight:700,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    background:activeTool===s.id?"rgba(27,174,200,0.15)":"var(--card2)",
+                    border:activeTool===s.id?"1.5px solid var(--teal)":"1.5px solid var(--border)",
+                    color:activeTool===s.id?"var(--teal)":"var(--muted2)"}}
+                  onClick={()=>setActiveTool(s.id)} title={s.desc}>
+                  {s.label}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Панель навигации */}
+          <div style={{display:"flex",alignItems:"center",gap:5,padding:"7px 10px",
+            background:"var(--card)",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+            <button className="btn bl bsm" onClick={clearAll} style={{padding:"5px 9px",fontSize:12}}>🗑</button>
+            {type==="color" && activeTool !== "erase" && (
+              <button className="btn bl bsm" onClick={()=>fillAll(activeTool)} style={{padding:"5px 9px",fontSize:12}}>🖌</button>
+            )}
+            <div style={{width:1,height:22,background:"var(--border)",margin:"0 2px"}}/>
+            <button onClick={()=>moveCanvas(-STEP,0)}
+              style={{width:32,height:32,borderRadius:8,border:"1px solid var(--border)",
+                background:"var(--card2)",cursor:"pointer",fontSize:16,color:"var(--muted2)",
+                display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+            <div style={{display:"flex",flexDirection:"column",gap:2}}>
+              <button onClick={()=>moveCanvas(0,-STEP)}
+                style={{width:32,height:14,borderRadius:"5px 5px 2px 2px",border:"1px solid var(--border)",
+                  background:"var(--card2)",cursor:"pointer",fontSize:9,color:"var(--muted2)",
+                  display:"flex",alignItems:"center",justifyContent:"center"}}>▲</button>
+              <button onClick={()=>moveCanvas(0,STEP)}
+                style={{width:32,height:14,borderRadius:"2px 2px 5px 5px",border:"1px solid var(--border)",
+                  background:"var(--card2)",cursor:"pointer",fontSize:9,color:"var(--muted2)",
+                  display:"flex",alignItems:"center",justifyContent:"center"}}>▼</button>
+            </div>
+            <button onClick={()=>moveCanvas(STEP,0)}
+              style={{width:32,height:32,borderRadius:8,border:"1px solid var(--border)",
+                background:"var(--card2)",cursor:"pointer",fontSize:16,color:"var(--muted2)",
+                display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
+            <div style={{width:1,height:22,background:"var(--border)",margin:"0 2px"}}/>
+            <button onClick={()=>setZoom(z=>Math.max(z-0.25,0.4))}
+              style={{width:28,height:28,borderRadius:7,border:"1px solid var(--border)",
+                background:"var(--card2)",cursor:"pointer",fontSize:16,color:"var(--muted2)",
+                display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+            <span style={{fontSize:11,fontWeight:800,color:"var(--teal)",minWidth:30,textAlign:"center"}}>
+              {Math.round(zoom*100)}%
+            </span>
+            <button onClick={()=>setZoom(z=>Math.min(z+0.25,3))}
+              style={{width:28,height:28,borderRadius:7,border:"1px solid var(--border)",
+                background:"var(--card2)",cursor:"pointer",fontSize:16,color:"var(--muted2)",
+                display:"flex",alignItems:"center",justifyContent:"center"}}>＋</button>
+          </div>
+
+          {/* Холст */}
+          <div style={{flex:1,overflow:"hidden",position:"relative",background:"var(--bg2)"}}>
+            <div style={{position:"absolute",left:-offsetX,top:-offsetY,
+              transition:"left .12s,top .12s",padding:"12px"}}>
+              <SchemaCanvas
+                rows={rows} cols={cols} cells={cells}
+                type={type} zoom={zoom} cellSize={CELL_SIZE}
+                activeTool={activeTool} onCellPaint={handleCellTouch}
+                highlightRow={null} readonly={false}
+              />
+              {type==="color" && getColorLegend().length>0 && (
+                <div style={{marginTop:12}}>
+                  <div className="lbl" style={{marginBottom:6}}>Легенда</div>
+                  <div className="schema-legend">
+                    {getColorLegend().map((c,i) => (
+                      <div key={c} className="schema-legend-item">
+                        <div className="schema-legend-swatch" style={{background:c}}/>
+                        <span>Цвет {i+1}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {type==="symbol" && getSymbolLegend().length>0 && (
-            <div style={{marginTop:12}}>
-              <div className="lbl" style={{marginBottom:6}}>Легенда</div>
-              <div className="schema-legend">
-                {getSymbolLegend().map(s => (
-                  <div key={s.id} className="schema-legend-item">
-                    <div style={{width:18,height:18,borderRadius:4,background:"var(--card)",
-                      border:"1px solid var(--border)",display:"flex",alignItems:"center",
-                      justifyContent:"center",fontSize:12,fontWeight:800,
-                      color:SYMBOL_COLORS[s.id]||"var(--teal)",flexShrink:0}}>{s.label}</div>
-                    <span>{s.desc}</span>
+                </div>
+              )}
+              {type==="symbol" && getSymbolLegend().length>0 && (
+                <div style={{marginTop:12}}>
+                  <div className="lbl" style={{marginBottom:6}}>Легенда</div>
+                  <div className="schema-legend">
+                    {getSymbolLegend().map(s => (
+                      <div key={s.id} className="schema-legend-item">
+                        <div style={{width:18,height:18,borderRadius:4,background:"var(--card)",
+                          border:"1px solid var(--border)",display:"flex",alignItems:"center",
+                          justifyContent:"center",fontSize:12,fontWeight:800,
+                          color:SYMBOL_COLORS[s.id]||"var(--teal)",flexShrink:0}}>{s.label}</div>
+                        <span>{s.desc}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
-          )}
+            <div style={{position:"absolute",bottom:8,right:10,
+              background:"rgba(0,0,0,0.55)",backdropFilter:"blur(6px)",
+              borderRadius:8,padding:"3px 8px",fontSize:10,fontWeight:700,
+              color:"rgba(255,255,255,0.6)",pointerEvents:"none"}}>
+              {Math.floor(offsetX/Math.round(CELL_SIZE*zoom))}:{Math.floor(offsetY/Math.round(CELL_SIZE*zoom))}
+            </div>
+          </div>
         </div>
-        <div style={{position:"absolute",bottom:8,right:10,
-          background:"rgba(0,0,0,0.55)",backdropFilter:"blur(6px)",
-          borderRadius:8,padding:"3px 8px",fontSize:10,fontWeight:700,
-          color:"rgba(255,255,255,0.6)",pointerEvents:"none"}}>
-          {Math.floor(offsetX/Math.round(CELL_SIZE*zoom))}:{Math.floor(offsetY/Math.round(CELL_SIZE*zoom))}
-        </div>
-      </div>
-    </div>
-    </div>
+      )}
+    </>
   );
 }
+
 
 
 // ── Холст схемы (используется и в редакторе и в просмотре) ───────────────────
