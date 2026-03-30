@@ -2026,6 +2026,18 @@ function SchemaEditor({schema, onSave, onBack}){
 
   const clearAll = () => { pushHistory({}); };
 
+  // ── Переменные для экрана рисования (должны быть до условных return) ────────
+  const [offsetX, setOffsetX] = useState(0);
+  const [offsetY, setOffsetY] = useState(0);
+  const STEP = Math.round(CELL_SIZE * zoom * 3);
+
+  const moveCanvas = (dx, dy) => {
+    const maxX = Math.max(0, cols * Math.round(CELL_SIZE * zoom) - 260);
+    const maxY = Math.max(0, rows * Math.round(CELL_SIZE * zoom) - 360);
+    setOffsetX(x => Math.max(0, Math.min(maxX, x + dx)));
+    setOffsetY(y => Math.max(0, Math.min(maxY, y + dy)));
+  };
+
   if(step === "setup") return (
     <div className="page">
       <div className="sh">Создать <span>схему</span></div>
@@ -2071,17 +2083,6 @@ function SchemaEditor({schema, onSave, onBack}){
   );
 
   // ── Экран рисования ───────────────────────────────────────────────────────
-  const [offsetX, setOffsetX] = useState(0);
-  const [offsetY, setOffsetY] = useState(0);
-  const STEP = Math.round(CELL_SIZE * zoom * 3);
-
-  const moveCanvas = (dx, dy) => {
-    const maxX = Math.max(0, cols * Math.round(CELL_SIZE * zoom) - 260);
-    const maxY = Math.max(0, rows * Math.round(CELL_SIZE * zoom) - 360);
-    setOffsetX(x => Math.max(0, Math.min(maxX, x + dx)));
-    setOffsetY(y => Math.max(0, Math.min(maxY, y + dy)));
-  };
-
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
 
